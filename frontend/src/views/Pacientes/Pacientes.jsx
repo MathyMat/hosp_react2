@@ -331,8 +331,6 @@ const RegistroPacientes = () => {
                         <div className="small text-body-secondary mb-1">
                             <CIcon icon={cilContact} className="me-1"/> DNI: {p.dni || 'N/A'} 
                             <span className="mx-2">|</span>
-                            <CIcon icon={cilBirthdayCake} className="me-1"/> Nac: {formatDisplayDate(p.fecha_nacimiento)}
-                            <span className="mx-2">|</span>
                             <CIcon icon={cilThumbUp} className="me-1"/> Género: {p.genero || 'N/A'}
                         </div>
                          <div className="small text-body-secondary">

@@ -11,7 +11,6 @@ import {
   CAvatar,
   CBadge,
   CButton,
-  // CDropdown, CDropdownToggle, CDropdownMenu, CDropdownItem, // Not currently used, can be added back if needed
   CNav,
   CNavItem,
   CNavLink,
@@ -28,7 +27,6 @@ import {
   cilPeople,
   cilCalendarCheck,
   cilBed,
-  cilOptions,
   cilCalendar,
   cilPlus,
   cilChevronLeft,
@@ -36,9 +34,6 @@ import {
   cilBriefcase,
   cilStar,
   cilHospital,
-  // cilPen, // Replaced by cilCalendarCheck for appointments
-  // cilDoor, // Replaced by cilBed for rooms
-  cilChartPie as cilVisitor, // Replaced by cilPeople for patients
   cilMedicalCross
 } from '@coreui/icons';
 import { API_BASE_URL } from '../../config/apiConfig';
@@ -53,7 +48,6 @@ const Dashboard = () => {
   const [currentDayActivities, setCurrentDayActivities] = useState([]);
   const [selectedCalendarDay, setSelectedCalendarDay] = useState(new Date().getDate());
 
-
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -61,17 +55,26 @@ const Dashboard = () => {
       try {
         const response = await axios.get(`${API_BASE_URL}/dashboard/stats`);
         setStats(response.data);
-        console.log("Dashboard data from API:", response.data);
+        console.log("FRONTEND LOG: Dashboard data from API:", response.data);
+        console.log("FRONTEND LOG: Appointments from API:", response.data.appointments);
 
-        // Initialize activities for the current day of the current month
+
         const today = new Date();
         const initialDateKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-        if (response.data && response.data.calendarActivities && response.data.calendarActivities[initialDateKey]) {
-            setCurrentDayActivities(response.data.calendarActivities[initialDateKey]);
+        
+        if (response.data && response.data.calendarActivities) {
+            console.log("FRONTEND LOG: Initial calendarActivities from API:", response.data.calendarActivities);
+            if (response.data.calendarActivities[initialDateKey]) {
+                setCurrentDayActivities(response.data.calendarActivities[initialDateKey]);
+            } else {
+                setCurrentDayActivities([]);
+                console.log("FRONTEND LOG: No activities for initialDateKey:", initialDateKey);
+            }
         } else {
             setCurrentDayActivities([]);
+            console.log("FRONTEND LOG: calendarActivities not found in response.data or response.data is null");
         }
-        setSelectedCalendarDay(today.getDate()); // Set selected day to today initially
+        setSelectedCalendarDay(today.getDate());
 
       } catch (error) {
         console.error('Error cargando datos del dashboard:', error);
@@ -81,11 +84,21 @@ const Dashboard = () => {
       }
     };
     fetchData();
-  }, []); // Fetch only on mount
+  }, []);
 
   const handleDayClick = (day) => {
-    setSelectedCalendarDay(day); // Highlight the clicked day
-    const dateKey = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    setSelectedCalendarDay(day);
+    const monthForLog = String(currentMonth.getMonth() + 1).padStart(2, '0');
+    const dayForLog = String(day).padStart(2, '0');
+    const dateKey = `${currentMonth.getFullYear()}-${monthForLog}-${dayForLog}`;
+    
+    console.log("FRONTEND LOG: Calendar Day Clicked:", day, "Generated dateKey:", dateKey);
+    console.log("FRONTEND LOG: stats.calendarActivities available:", stats ? !!stats.calendarActivities : "stats is null");
+    if (stats && stats.calendarActivities) {
+        console.log("FRONTEND LOG: Activities for this key (stats.calendarActivities[dateKey]):", stats.calendarActivities[dateKey]);
+        console.log("FRONTEND LOG: All calendarActivities keys from stats:", Object.keys(stats.calendarActivities));
+    }
+
     if (stats && stats.calendarActivities && stats.calendarActivities[dateKey]) {
         setCurrentDayActivities(stats.calendarActivities[dateKey]);
     } else {
@@ -98,7 +111,7 @@ const Dashboard = () => {
     const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
     const lastDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
     const daysInMonth = lastDayOfMonth.getDate();
-    const startingDay = firstDayOfMonth.getDay(); // 0 = Sunday
+    const startingDay = firstDayOfMonth.getDay();
 
     let days = [];
     for (let i = 0; i < startingDay; i++) {
@@ -108,7 +121,7 @@ const Dashboard = () => {
     for (let day = 1; day <= daysInMonth; day++) {
         const dateKey = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const isToday = today.getDate() === day && today.getMonth() === currentMonth.getMonth() && today.getFullYear() === currentMonth.getFullYear();
-        const isSelectedDay = selectedCalendarDay === day;
+        const isSelectedDay = selectedCalendarDay === day && currentMonth.getFullYear() === new Date().getFullYear() && currentMonth.getMonth() === new Date().getMonth(); // Ensure selected day is in current month view for highlight
         const hasActivity = stats && stats.calendarActivities && stats.calendarActivities[dateKey] && stats.calendarActivities[dateKey].length > 0;
 
       days.push(
@@ -135,10 +148,9 @@ const Dashboard = () => {
   const changeMonth = (offset) => {
     setCurrentMonth(prev => {
         const newMonthDate = new Date(prev.getFullYear(), prev.getMonth() + offset, 1);
-        // When month changes, try to select the 1st or current day if it's the current month
         const today = new Date();
         if (newMonthDate.getFullYear() === today.getFullYear() && newMonthDate.getMonth() === today.getMonth()) {
-            handleDayClick(today.getDate());
+            handleDayClick(today.getDate()); // Select today if current month
         } else {
             handleDayClick(1); // Select the first day of the new month
         }
@@ -212,7 +224,6 @@ const Dashboard = () => {
 
   const availableGeneralRooms = Math.max(0, totalGeneralRoomsAPI - occupiedGeneralAPI);
   const availablePrivateRooms = Math.max(0, totalPrivateRoomsAPI - occupiedPrivateAPI);
-
 
   return (
     <>
@@ -464,7 +475,7 @@ const Dashboard = () => {
                                             />
                                             <div>
                                                 <div className="fw-semibold small">{doc.name}</div>
-                                                <div className="extra-small text-muted">{doc.specialty}</div>
+                                                <div className="extra-small text-muted">{doc.specialty || 'N/A'}</div>
                                             </div>
                                         </div>
                                         <CBadge 
@@ -505,7 +516,9 @@ const Dashboard = () => {
                                 />
                                 <div>
                                     <div className="fw-semibold small">{apt.name}</div>
-                                    <div className="extra-small text-muted">Dr/a. {apt.doctor_specialty}</div>
+                                    <div className="extra-small text-muted">
+                                        {apt.doctor_name || 'Dr/a.'} { apt.doctor_name && apt.doctor_specialty ? `- ${apt.doctor_specialty}` : apt.doctor_specialty || '(Especialidad N/A)'}
+                                    </div>
                                 </div>
                             </div>
                             <div className="text-end">
