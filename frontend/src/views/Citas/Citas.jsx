@@ -104,12 +104,12 @@ const GestionCitas = () => {
       const resCitas = await axios.get(`${API_BASE_URL}/citas`);
       const citasProcesadas = Array.isArray(resCitas.data) ? resCitas.data.map(cita => {
         if (!cita) return null; 
-        const doctorFotoBase64 = cita.doctor_foto_base64 || null;
-        const pacienteFotoBase64 = cita.paciente_foto_base64 || null;
+        const doctorFotoBase64 = cita.doctor_foto_base64 || null; // Local var is camelCase
+        const pacienteFotoBase64 = cita.paciente_foto_base64 || null; // Local var is camelCase
         return {
           ...cita,
-          doctor_foto_base64: doctorFotoBase64,
-          paciente_foto_base64: pacienteFotoBase64,
+          doctor_foto_base64: doctorFotoBase64, // Property key is snake_case, value from local camelCase var
+          paciente_foto_base64: pacienteFotoBase64, // Property key is snake_case, value from local camelCase var
           especialidad_cita: cita.especialidad_cita || cita.doctor_especialidad_actual || 'N/A'
         };
       }).filter(Boolean) : [];
@@ -169,9 +169,14 @@ const GestionCitas = () => {
       setShowFormModal(false);
       if (response.data.cita && typeof response.data.cita.id !== 'undefined') {
         const nuevaCita = response.data.cita;
-        const doctorFotoBase64 = nuevaCita.doctor_foto_base64 || null;
-        const pacienteFotoBase64 = nuevaCita.paciente_foto_base64 || null;
-        const nuevaCitaProcesada = { ...nuevaCita, doctor_foto_base64, paciente_foto_base64 };
+        const doctorFotoBase64 = nuevaCita.doctor_foto_base64 || null; // Local var is camelCase
+        const pacienteFotoBase64 = nuevaCita.paciente_foto_base64 || null; // Local var is camelCase
+        // *** FIXED LINE BELOW ***
+        const nuevaCitaProcesada = { 
+          ...nuevaCita, 
+          doctor_foto_base64: doctorFotoBase64, // Property key is snake_case, value from local camelCase var
+          paciente_foto_base64: pacienteFotoBase64 // Property key is snake_case, value from local camelCase var
+        };
         setCitas(prevCitas => [nuevaCitaProcesada, ...prevCitas].sort((a,b) => new Date(b.fecha) - new Date(a.fecha)));
       } else {
         cargarCitas();
@@ -217,9 +222,14 @@ const GestionCitas = () => {
       
       const citaActualizadaDesdeBackend = response.data.cita;
       if (citaActualizadaDesdeBackend && typeof citaActualizadaDesdeBackend.id !== 'undefined') {
-          const doctorFotoBase64 = citaActualizadaDesdeBackend.doctor_foto_base64 || null;
-          const pacienteFotoBase64 = citaActualizadaDesdeBackend.paciente_foto_base64 || null;
-          const citaParaEstado = { ...citaActualizadaDesdeBackend, doctor_foto_base64, paciente_foto_base64 };
+          const doctorFotoBase64 = citaActualizadaDesdeBackend.doctor_foto_base64 || null; // Local var is camelCase
+          const pacienteFotoBase64 = citaActualizadaDesdeBackend.paciente_foto_base64 || null; // Local var is camelCase
+          // *** FIXED LINE BELOW FOR CONSISTENCY ***
+          const citaParaEstado = { 
+            ...citaActualizadaDesdeBackend, 
+            doctor_foto_base64: doctorFotoBase64, // Property key is snake_case, value from local camelCase var
+            paciente_foto_base64: pacienteFotoBase64 // Property key is snake_case, value from local camelCase var
+          };
         setCitas(prevCitas => prevCitas.map(c => (c && c.id === citaId) ? { ...citaParaEstado, estado: nuevoEstadoCita } : c));
       } else {
          setCitas(prevCitas => prevCitas.map(c => (c && c.id === citaId) ? { ...c, estado: nuevoEstadoCita } : c));
@@ -566,7 +576,9 @@ const GestionCitas = () => {
             if (!idParaEliminar || !Array.isArray(citas) || citas.length === 0) return `¿Está seguro de que desea eliminar la cita con ID ${idParaEliminar || 'desconocido'}?`;
             const citaEncontrada = citas.find(c => c && c.id === idParaEliminar);
             const nombrePaciente = citaEncontrada ? `${citaEncontrada.paciente_nombre || ''} ${citaEncontrada.paciente_apellido || ''}`.trim() : '';
-            return `¿Está seguro de que desea eliminar la cita con ID <strong>${idParaEliminar}</strong>${nombrePaciente ? ` para ${nombrePaciente}` : ''}? Esta acción no se puede deshacer.`;
+            // Use dangerouslySetInnerHTML for bold text in modal message
+            const message = `¿Está seguro de que desea eliminar la cita con ID <strong>${idParaEliminar}</strong>${nombrePaciente ? ` para ${nombrePaciente}` : ''}? Esta acción no se puede deshacer.`;
+            return <span dangerouslySetInnerHTML={{ __html: message }} />;
           })()}
         </CModalBody>
         <CModalFooter>

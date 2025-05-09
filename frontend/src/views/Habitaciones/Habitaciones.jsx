@@ -1,6 +1,6 @@
 // src/views/TuRuta/HabitacionesPacientes.js o similar
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react'; // Added useMemo
 import axios from 'axios';
 import {
   CButton,
@@ -13,12 +13,7 @@ import {
   CFormLabel,
   CFormSelect,
   CRow,
-  CTable,
-  CTableHead,
-  CTableRow,
-  CTableHeaderCell,
-  CTableBody,
-  CTableDataCell,
+  // CTable, CTableHead, CTableRow, CTableHeaderCell, CTableBody, CTableDataCell, // No longer needed for list
   CAlert,
   CSpinner,
   CModal,
@@ -26,23 +21,34 @@ import {
   CModalTitle,
   CModalBody,
   CModalFooter,
+  CAvatar,    // Added for patient photo
+  CBadge,     // Added for patient status
+  CCardText,  // Added for card content
+  CCardFooter // Added for card actions
 } from '@coreui/react';
 import CIcon from '@coreui/icons-react';
 import { 
     cilBed, cilList, cilTrash, cilHospital, cilWarning, 
-    cilCheckCircle, cilXCircle, cilInfo, cilPlus // Added for the new button
+    cilCheckCircle, cilXCircle, cilInfo, cilPlus,
+    cilUser,      // Added from Citas for patient/doctor
+    cilClock,     // Added from Citas for dates
+    cilNotes,     // Added from Citas for motivo
+    cilBriefcase  // Added from Citas for doctor role (alt)
 } from '@coreui/icons';
 import { API_BASE_URL } from '../../config/apiConfig';
 
+// Placeholder for patient photo, assuming same as doctor or a generic one
+import placeholderPaciente from '../../assets/images/avatar-placeholder.png'; // Adjust path if needed
+
 const HabitacionesPacientes = () => {
   const [asignaciones, setAsignaciones] = useState([]);
-  const [pacientes, setPacientes] = useState([]);
+  const [pacientes, setPacientes] = useState([]); // Ensure this data includes `foto_base64` for each patient
   const [doctores, setDoctores] = useState([]);
   const [habitacionesDisponibles, setHabitacionesDisponibles] = useState([]);
 
-  const [loading, setLoading] = useState(true); // For initial data loading
-  const [formLoading, setFormLoading] = useState(false); // For form submission (now in modal)
-  const [error, setError] = useState(''); // General errors, especially for list loading
+  const [loading, setLoading] = useState(true); 
+  const [formLoading, setFormLoading] = useState(false); 
+  const [error, setError] = useState(''); 
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [idParaEliminar, setIdParaEliminar] = useState(null);
@@ -56,10 +62,8 @@ const HabitacionesPacientes = () => {
     icon: cilInfo,
   });
 
-  // State for Asignar Modal
   const [showAsignarModal, setShowAsignarModal] = useState(false);
 
-  // Definición del estado formulario
   const [formulario, setFormulario] = useState({
     paciente_id: '',
     habitacion_disponible_id: '',
@@ -109,7 +113,7 @@ const HabitacionesPacientes = () => {
     console.log("HabitacionesPacientes: Iniciando cargarDatosDependencias...");
     try {
       const [resPacientes, resDoctores, resHabDisponibles] = await Promise.all([
-        axios.get(`${API_BASE_URL}/pacientes`),
+        axios.get(`${API_BASE_URL}/pacientes`), // IMPORTANT: Ensure this endpoint returns paciente.foto_base64
         axios.get(`${API_BASE_URL}/doctores`),
         axios.get(`${API_BASE_URL}/habitaciones/disponibles`),
       ]);
@@ -122,7 +126,7 @@ const HabitacionesPacientes = () => {
       console.error("HabitacionesPacientes: Error en cargarDatosDependencias:", err);
       let msg = `Error al cargar datos para selectores: ${err.message}`;
       if (err.response) msg += ` (Status: ${err.response.status})`;
-      setError(prev => prev ? `${prev}\n${msg}` : msg); // Accumulate errors
+      setError(prev => prev ? `${prev}\n${msg}` : msg);
       return false;
     }
   };
@@ -131,14 +135,18 @@ const HabitacionesPacientes = () => {
     console.log("HabitacionesPacientes: Cargando asignaciones actuales...");
     try {
         const resAsignaciones = await axios.get(`${API_BASE_URL}/habitaciones/asignadas`);
-        setAsignaciones(Array.isArray(resAsignaciones.data) ? resAsignaciones.data : []);
-        console.log("HabitacionesPacientes: Asignaciones cargadas.");
+        // Sort asignaciones by fecha_ingreso descending (most recent first)
+        const sortedAsignaciones = Array.isArray(resAsignaciones.data) 
+            ? resAsignaciones.data.sort((a,b) => new Date(b.fecha_ingreso) - new Date(a.fecha_ingreso))
+            : [];
+        setAsignaciones(sortedAsignaciones);
+        console.log("HabitacionesPacientes: Asignaciones cargadas y ordenadas.");
         return true;
     } catch (err) {
         console.error("HabitacionesPacientes: Error en cargarAsignacionesActuales:", err);
         let msg = `Error al cargar lista de asignaciones: ${err.message}`;
         if (err.response) msg += ` (Status: ${err.response.status})`;
-        setError(prev => prev ? `${prev}\n${msg}` : msg); // Accumulate errors
+        setError(prev => prev ? `${prev}\n${msg}` : msg);
         setAsignaciones([]);
         return false;
     }
@@ -147,7 +155,7 @@ const HabitacionesPacientes = () => {
   const cargarTodo = async () => {
     console.log("HabitacionesPacientes: Iniciando cargarTodo...");
     setLoading(true);
-    setError(''); // Clear previous errors before new load attempt
+    setError(''); 
     await Promise.all([
         cargarDatosDependencias(),
         cargarAsignacionesActuales()
@@ -166,8 +174,8 @@ const HabitacionesPacientes = () => {
 
   const recargarDatosPostAccion = async () => {
     console.log("Recargando datos post-acción...");
-    setLoading(true); // Indicate loading for dependent data
-    const asignacionesOk = await cargarAsignacionesActuales();
+    // setLoading(true); // Show loading for the main list perhaps, or just specific parts
+    const asignacionesOk = await cargarAsignacionesActuales(); // This will re-sort
     const habDisponiblesOk = await (async () => {
         try {
             const res = await axios.get(`${API_BASE_URL}/habitaciones/disponibles`);
@@ -181,7 +189,7 @@ const HabitacionesPacientes = () => {
             return false; 
         }
     })();
-    setLoading(false);
+    // setLoading(false);
     if (!asignacionesOk || !habDisponiblesOk) {
         console.warn("Problema al recargar datos post-acción.");
     }
@@ -207,8 +215,8 @@ const HabitacionesPacientes = () => {
       const response = await axios.post(`${API_BASE_URL}/habitaciones/asignar`, datosAEnviar);
       mostrarNotificacion('Asignación Exitosa', response.data?.message || 'La habitación ha sido asignada correctamente.', 'success');
       resetFormulario();
-      setShowAsignarModal(false); // Close modal on success
-      await recargarDatosPostAccion();
+      setShowAsignarModal(false); 
+      await recargarDatosPostAccion(); // This will re-fetch and re-sort
     } catch (err) {
       console.error('Error al asignar habitación:', err);
       mostrarNotificacion('Error al Asignar', err.response?.data?.message || err.response?.data?.error || 'Ocurrió un error al intentar asignar la habitación.', 'error');
@@ -242,20 +250,15 @@ const HabitacionesPacientes = () => {
   };
 
   const estadoPacienteOpciones = [
-    { value: 'Estable', label: 'Estable' },
-    { value: 'Observación', label: 'Observación' },
-    { value: 'Crítico', label: 'Crítico' },
+    { value: 'Estable', label: 'Estable', color: 'success' },
+    { value: 'Observación', label: 'Observación', color: 'warning' },
+    { value: 'Crítico', label: 'Crítico', color: 'danger' },
+    // { value: 'Alta', label: 'Alta', color: 'info' }, // Could be an option if you manage "alta" status explicitly
   ];
-
-  const getNombrePaciente = (pacienteId) => {
-    const paciente = pacientes.find(p => p.id === parseInt(pacienteId));
-    return paciente ? `${paciente.nombre} ${paciente.apellido}` : `ID: ${pacienteId}`;
-  };
-
-  const getNombreDoctor = (doctorId) => {
-    const doctor = doctores.find(d => d.id === parseInt(doctorId));
-    return doctor ? `${doctor.nombre} ${doctor.apellidos || doctor.apellido}` : `ID: ${doctorId}`;
-  };
+  
+  const getEstadoPacienteInfo = (estadoValor) => {
+    return estadoPacienteOpciones.find(op => op.value === estadoValor) || { label: estadoValor || 'N/A', color: 'secondary' };
+  }
 
   const formatDateTime = (dateTimeString) => {
     if (!dateTimeString) return '-';
@@ -268,6 +271,34 @@ const HabitacionesPacientes = () => {
         return 'Fecha inválida';
     }
   };
+
+  // Prepare detailed assignment data for rendering cards
+ const asignacionesConDetalles = useMemo(() => {
+    if (loading || !pacientes.length || !doctores.length) { 
+        return [];
+    }
+    return asignaciones.map(a => {
+      const paciente = pacientes.find(p => p.id === parseInt(a.paciente_id));
+      const doctor = doctores.find(d => d.id === parseInt(a.doctor_id));
+      const estadoInfo = getEstadoPacienteInfo(a.estado_paciente);
+  
+      // Log to check if paciente.fotoBase64 is being correctly picked up
+      if (paciente) {
+        console.log(`Asignacion ID: ${a.id}, Paciente: ${paciente.nombre}, Paciente.fotoBase64:`, paciente.fotoBase64 ? 'Exists' : 'MISSING or Null');
+      }
+
+      return {
+        ...a,
+        paciente_nombre_completo: paciente ? `${paciente.nombre} ${paciente.apellido}`.trim() : `ID Pac: ${a.paciente_id}`,
+        paciente_dni: paciente ? paciente.dni : 'N/A',
+        // Use 'fotoBase64' (camelCase) from the processed paciente object
+        paciente_foto_base64: paciente ? paciente.fotoBase64 : null, 
+        doctor_nombre_completo: doctor ? `${doctor.nombre} ${doctor.apellidos || doctor.apellido}`.trim() : `ID Doc: ${a.doctor_id}`,
+        habitacion_descripcion: `${a.numero_habitacion_asignada || a.numero_disponible || a.numero || 'N/A'} - ${a.tipo_habitacion_asignada || a.tipo_disponible || a.tipo || 'N/A'}`,
+        estado_info: estadoInfo,
+      };
+    });
+  }, [asignaciones, pacientes, doctores, loading]);
 
   if (loading && error && !pacientes.length && !doctores.length && !habitacionesDisponibles.length && !asignaciones.length) {
     return (
@@ -285,14 +316,14 @@ const HabitacionesPacientes = () => {
   }
 
   return (
-    <div className="p-4">
+    <div className="p-4 vista-container">
       <CRow className="mb-3">
         <CCol className="text-end">
           <CButton 
             color="primary" 
             onClick={() => { resetFormulario(); setShowAsignarModal(true); }} 
             className="px-4 py-2 shadow-sm"
-            disabled={loading} // Disable if initial data is loading
+            disabled={loading} 
           >
             <CIcon icon={cilPlus} className="me-2" />
             Asignar Nueva Habitación
@@ -300,7 +331,6 @@ const HabitacionesPacientes = () => {
         </CCol>
       </CRow>
 
-      {/* MODAL PARA ASIGNAR HABITACIÓN */}
       <CModal 
         alignment="center" 
         size="lg" 
@@ -313,21 +343,13 @@ const HabitacionesPacientes = () => {
         </CModalHeader>
         <CForm onSubmit={handleAsignarSubmit}>
           <CModalBody>
-            {/* Display general error if it occurred during initial load and modal is opened */}
-            {error && !loading && (
-              <CAlert color="warning" dismissible onClose={() => setError('')}>
-                Error al cargar datos necesarios para la asignación:
-                {error.split('\n').map((item, key) => <div key={key}>{item}</div>)}
-                Por favor, intente recargar la página o contacte a soporte.
-              </CAlert>
-            )}
             <CRow className="g-3 mb-4">
               <CCol md={6}>
                 <CFormLabel htmlFor="modal_paciente_id">Paciente *</CFormLabel>
                 <CFormSelect id="modal_paciente_id" name="paciente_id" value={formulario.paciente_id} onChange={handleChange} required disabled={loading || formLoading || !pacientes.length}>
                   <option value="">{(loading && !pacientes.length) ? "Cargando pacientes..." : (pacientes.length ? "Seleccione paciente" : "No hay pacientes")}</option>
                   {pacientes.map(p => (
-                    <option key={p.id} value={p.id}>{p.nombre} {p.apellido}</option>
+                    <option key={p.id} value={p.id}>{p.nombre} {p.apellido} (DNI: {p.dni || 'N/A'})</option>
                   ))}
                 </CFormSelect>
               </CCol>
@@ -364,7 +386,7 @@ const HabitacionesPacientes = () => {
               <CCol md={6}>
                 <CFormLabel htmlFor="modal_estado_paciente">Estado del paciente</CFormLabel>
                 <CFormSelect id="modal_estado_paciente" name="estado_paciente" value={formulario.estado_paciente} onChange={handleChange} disabled={formLoading}>
-                  {estadoPacienteOpciones.map(opcion => (
+                  {estadoPacienteOpciones.map(opcion => ( 
                      <option key={opcion.value} value={opcion.value}>
                        {opcion.label}
                      </option>
@@ -390,24 +412,23 @@ const HabitacionesPacientes = () => {
         </CForm>
       </CModal>
 
-      <CCard className="shadow-sm mt-2"> {/* Original CCard for the list, mt-2 to give space for button */}
-        <CCardHeader className="bg-primary text-white"> {/* Added bg-primary and text-white for consistency */}
+      <CCard className="shadow-sm mt-2">
+        <CCardHeader className="bg-primary text-white">
           <h5 className="mb-0 d-flex align-items-center">
             <CIcon icon={cilList} className="me-2" />
-            Listado de Asignaciones
+            Listado de Asignaciones ({asignacionesConDetalles.length})
           </h5>
         </CCardHeader>
         <CCardBody>
-          {loading && !asignaciones.length && (
+          {loading && !asignacionesConDetalles.length && (
             <div className="text-center p-5">
               <CSpinner color="primary" />
-              <p className="mt-2">Cargando lista de asignaciones...</p>
+              <p className="mt-2">Cargando asignaciones...</p>
             </div>
           )}
-          {!loading && !asignaciones.length && !error && ( // No general error, and no asignaciones
+          {!loading && !asignacionesConDetalles.length && !error && (
             <CAlert color="info" className="text-center">No hay asignaciones registradas actualmente. Use el botón "Asignar Nueva Habitación" para agregar una.</CAlert>
           )}
-           {/* Display general error if it occurred and the list is empty or failed to load */}
            {!loading && error && ( 
              <CAlert color="warning" className="text-center" dismissible onClose={() => setError('')}>
                 Hubo problemas al cargar los datos:
@@ -416,50 +437,54 @@ const HabitacionesPacientes = () => {
              </CAlert>
            )}
 
-          {!loading && asignaciones.length > 0 && (
-            <div className="table-responsive">
-              <CTable hover dark className="modern-table">
-                <CTableHead>
-                  <CTableRow>
-                    <CTableHeaderCell>ID</CTableHeaderCell>
-                    <CTableHeaderCell>Paciente</CTableHeaderCell>
-                    <CTableHeaderCell>Habitación</CTableHeaderCell>
-                    <CTableHeaderCell>Ingreso</CTableHeaderCell>
-                    <CTableHeaderCell>Salida Estimada</CTableHeaderCell>
-                    <CTableHeaderCell>Médico</CTableHeaderCell>
-                    <CTableHeaderCell>Estado Paciente</CTableHeaderCell>
-                    <CTableHeaderCell>Motivo</CTableHeaderCell>
-                    <CTableHeaderCell className="text-center">Acciones</CTableHeaderCell>
-                  </CTableRow>
-                </CTableHead>
-                <CTableBody>
-                  {asignaciones.map(a => (
-                    <CTableRow key={a.id}>
-                      <CTableDataCell>{a.id}</CTableDataCell>
-                      <CTableDataCell>{getNombrePaciente(a.paciente_id)}</CTableDataCell>
-                      <CTableDataCell>{a.numero_habitacion_asignada || a.numero_disponible || a.numero || 'N/A'} - {a.tipo_habitacion_asignada || a.tipo_disponible || a.tipo || 'N/A'}</CTableDataCell>
-                      <CTableDataCell>{formatDateTime(a.fecha_ingreso)}</CTableDataCell>
-                      <CTableDataCell>{formatDateTime(a.fecha_salida_estimada)}</CTableDataCell>
-                      <CTableDataCell>{getNombreDoctor(a.doctor_id)}</CTableDataCell>
-                      <CTableDataCell>{a.estado_paciente}</CTableDataCell>
-                      <CTableDataCell>{a.motivo_ingreso || '-'}</CTableDataCell>
-                      <CTableDataCell className="text-center">
+          {!loading && asignacionesConDetalles.length > 0 && (
+            <CRow xs={{ cols: 1 }} md={{ cols: 2 }} lg={{ cols: 3 }} className="g-4 mt-2">
+              {asignacionesConDetalles.map(a => (
+                <CCol key={a.id}>
+                  <CCard className="h-100 shadow-sm asignacion-card">
+                    <CCardHeader className="d-flex justify-content-between align-items-center p-2 bg-body-tertiary border-bottom">
+                        <div className="fw-semibold small text-muted">Asignación ID: {a.id}</div>
+                        <CBadge 
+                            color={a.estado_info.color}
+                            shape="rounded-pill" className="px-2 py-1 ms-auto"
+                          >
+                            {a.estado_info.label}
+                          </CBadge>
+                    </CCardHeader>
+                    <CCardBody className="p-3">
+                        <div className="d-flex align-items-center mb-3">
+                            <CAvatar 
+                                src={a.paciente_foto_base64 ? `data:image/jpeg;base64,${a.paciente_foto_base64}` : placeholderPaciente} 
+                                size="xl" className="me-3 shadow-sm"
+                                onError={(e) => { e.target.onerror = null; e.target.src = placeholderPaciente; }}
+                            />
+                            <div>
+                                <div className="fw-bold h6 mb-0" title={a.paciente_nombre_completo}>{a.paciente_nombre_completo}</div>
+                                <div className="small text-body-secondary">DNI: {a.paciente_dni || 'N/A'}</div>
+                            </div>
+                        </div>
+                        <CCardText className="mb-1 small"><CIcon icon={cilBed} className="me-2 text-body-secondary"/><strong>Habitación:</strong> {a.habitacion_descripcion}</CCardText>
+                        <CCardText className="mb-1 small"><CIcon icon={cilBriefcase} className="me-2 text-body-secondary"/><strong>Médico:</strong> {a.doctor_nombre_completo}</CCardText>
+                        <CCardText className="mb-1 small"><CIcon icon={cilClock} className="me-2 text-body-secondary"/><strong>Ingreso:</strong> {formatDateTime(a.fecha_ingreso)}</CCardText>
+                        <CCardText className="mb-2 small"><CIcon icon={cilClock} className="me-2 text-body-secondary"/><strong>Salida Estimada:</strong> {formatDateTime(a.fecha_salida_estimada)}</CCardText>
+                        {a.motivo_ingreso && <CCardText className="small fst-italic bg-light p-2 rounded" style={{fontSize:'0.8em', maxHeight: '60px', overflowY: 'auto'}}><CIcon icon={cilNotes} className="me-2 text-body-secondary"/><strong>Motivo:</strong> {a.motivo_ingreso}</CCardText>}
+                    </CCardBody>
+                    <CCardFooter className="d-flex justify-content-end align-items-center p-2">
                         <CButton 
                             color="danger" 
-                            variant="outline" 
+                            variant="ghost"
                             size="sm" 
                             onClick={() => solicitarEliminarAsignacion(a.id)} 
-                            disabled={loading || formLoading || loadingDelete} 
+                            disabled={loading || formLoading || loadingDelete}
+                            title="Eliminar Asignación" 
                         >
-                          <CIcon icon={cilTrash} className="me-1" /> 
-                          Eliminar
+                          <CIcon icon={cilTrash} /> 
                         </CButton>
-                      </CTableDataCell>
-                    </CTableRow>
-                  ))}
-                </CTableBody>
-              </CTable>
-            </div>
+                    </CCardFooter>
+                  </CCard>
+                </CCol>
+              ))}
+            </CRow>
           )}
         </CCardBody>
       </CCard>

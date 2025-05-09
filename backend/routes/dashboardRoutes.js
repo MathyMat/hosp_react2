@@ -1,9 +1,10 @@
+// backend/routes/dashboardRoutes.js
 const express = require('express');
 const router = express.Router();
 const dashboardController = require('../controllers/dashboardController');
+// const authMiddleware = require('../middleware/verificarToken'); // Uncomment if you want to protect this route
 
-router.get('/resumen', dashboardController.getResumen);
-router.get('/actividades', dashboardController.getActividades);
-router.get('/distribucion', dashboardController.getDistribucion);
+// GET /api/dashboard/stats
+router.get('/stats', /* authMiddleware, */ dashboardController.getDashboardStats);
 
 module.exports = router;
