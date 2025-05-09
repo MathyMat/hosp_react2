@@ -29,6 +29,18 @@ const getDashboardStats = async (req, res) => {
             "SELECT COUNT(*) as occupiedRooms FROM habitaciones_disponibles WHERE estado = 'Ocupada'"
         );
         const occupiedRooms = occupiedRoomRows[0].occupiedRooms;
+        
+        // --- Get total general and private rooms for progress bar calculation ---
+        const [generalRoomCountRows] = await db.query(
+            "SELECT COUNT(*) as count FROM habitaciones_disponibles WHERE tipo = 'General'"
+        );
+        const totalGeneralRoomsDB = generalRoomCountRows[0]?.count || 0;
+
+        const [privateRoomCountRows] = await db.query(
+            "SELECT COUNT(*) as count FROM habitaciones_disponibles WHERE tipo = 'Privada'"
+        );
+        const totalPrivateRoomsDB = privateRoomCountRows[0]?.count || 0;
+
 
         // --- Recent Appointments (Example: 5 most recent for today or upcoming) ---
         const [recentAppointments] = await db.query(`
@@ -50,11 +62,11 @@ const getDashboardStats = async (req, res) => {
             LIMIT 5
         `);
 
-        // Convert BLOB to Base64 for recent appointments
         const formattedRecentAppointments = recentAppointments.map(apt => ({
             ...apt,
             paciente_foto_base64: apt.paciente_foto ? Buffer.from(apt.paciente_foto).toString('base64') : null,
         }));
+        console.log("Formatted Recent Appointments (first one):", formattedRecentAppointments.length > 0 ? formattedRecentAppointments[0] : "No recent appointments");
 
 
         // --- Top 3 Doctor Specialties (based on number of doctors) ---
@@ -68,25 +80,22 @@ const getDashboardStats = async (req, res) => {
         `);
         
         // --- Patient Overview (Simplified: Total patients per month for the last 6 months) ---
-        // This query is more complex and might need adjustment based on your exact DB structure and desired output
-        // For a real app, you might fetch raw data and process it in Node.js or use more advanced SQL
         const [patientMonthlyRows] = await db.query(`
-            SELECT DATE_FORMAT(fecha_nacimiento, '%Y-%m') as month, COUNT(*) as count
-            FROM pacientes
-            WHERE fecha_nacimiento >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+            SELECT DATE_FORMAT(p.fecha_registro_sistema, '%Y-%m') as month, COUNT(*) as count
+            FROM pacientes p
+            WHERE p.fecha_registro_sistema >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) 
             GROUP BY month
             ORDER BY month ASC
-        `); // This is a placeholder; a real patient registration date would be better.
+        `); // Note: Assumes a 'fecha_registro_sistema' column in 'pacientes'. If not, use another date like 'fecha_nacimiento' but the meaning changes.
 
 
         // --- Doctor Schedule (Simplified: Just counts for now) ---
-        // For a real schedule, you'd need a 'doctor_availability' table or similar logic
         const [availableDoctorsList] = await db.query(`
             SELECT id, nombre, apellidos, especialidad, foto 
             FROM doctores 
             ORDER BY RAND()
-            LIMIT 2 
-        `); // Example: Randomly pick 2 'available' doctors
+            LIMIT 3
+        `); 
         
         const formattedAvailableDoctors = availableDoctorsList.map(doc => ({
             name: `${doc.nombre} ${doc.apellidos}`,
@@ -94,50 +103,83 @@ const getDashboardStats = async (req, res) => {
             avatar_base64: doc.foto ? Buffer.from(doc.foto).toString('base64') : null
         }));
 
+        // --- Calendar Activities ---
+        const [appointmentCalendarRows] = await db.query(`
+            SELECT 
+                DATE_FORMAT(fecha, '%Y-%m-%d') as date, 
+                TIME_FORMAT(fecha, '%H:%i') as time,
+                motivo,
+                estado 
+            FROM citas 
+            WHERE fecha >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH) AND fecha <= DATE_ADD(CURDATE(), INTERVAL 2 MONTH) 
+            ORDER BY fecha ASC
+        `);
+
+        const calendarActivities = {};
+        appointmentCalendarRows.forEach(cita => {
+            if (!calendarActivities[cita.date]) {
+                calendarActivities[cita.date] = [];
+            }
+            let color = 'secondary'; 
+            if (cita.estado === 'pendiente') color = 'warning';
+            else if (cita.estado === 'confirmada') color = 'info';
+            else if (cita.estado === 'completada') color = 'success';
+            else if (cita.estado === 'cancelada') color = 'danger';
+
+            calendarActivities[cita.date].push({
+                time: new Date(`1970-01-01T${cita.time}:00Z`).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC'}),
+                title: cita.motivo || 'Cita Programada',
+                color: color 
+            });
+        });
+
 
         res.json({
-            totalDoctors: { value: totalDoctors, chartData: [30, 40, 35, 50, 49, 60, 70] }, // Chart data still mock
-            bookAppointment: { value: totalAppointmentsToday, daily: totalAppointmentsToday, chartData: [65, 59, 80, 81, 56, 55, 40]}, // Simplified
+            totalDoctors: { value: totalDoctors, chartData: [30, 40, 35, 50, 49, 60, 70] },
+            bookAppointment: { value: totalAppointmentsToday, daily: totalAppointmentsToday, chartData: [65, 59, 80, 81, 56, 55, 40]},
             roomAvailability: { 
-                value: availableRooms + occupiedRooms, // Total rooms managed
+                value: availableRooms + occupiedRooms,
                 available: availableRooms,
                 occupied: occupiedRooms,
-                // For progress bars, you might need total General vs Private
-                // This requires knowing total General and Private rooms from 'habitaciones_disponibles'
-                // Example:
-                general_total: 5, // Assuming 5 general rooms are in 'habitaciones_disponibles'
-                private_total: 5, // Assuming 5 private rooms
+                general_total: totalGeneralRoomsDB,
+                private_total: totalPrivateRoomsDB,
+                // For occupied general/private, you'd need to join habitaciones with habitaciones_disponibles
+                // and count occupied rooms by type. This is a simplification:
+                general_occupied: Math.min(Math.floor(occupiedRooms * (totalGeneralRoomsDB / (totalGeneralRoomsDB + totalPrivateRoomsDB || 1))), totalGeneralRoomsDB),
+                private_occupied: Math.min(Math.ceil(occupiedRooms * (totalPrivateRoomsDB / (totalGeneralRoomsDB + totalPrivateRoomsDB || 1))), totalPrivateRoomsDB),
             },
-            overallVisitor: { value: totalPatients, daily: Math.floor(totalPatients / 30), chartData: [45, 70, 60, 80, 50, 75, 65] }, // Simplified
+            overallVisitor: { value: totalPatients, daily: Math.floor(totalPatients / 30), chartData: [45, 70, 60, 80, 50, 75, 65] }, 
             
-            patientOverview: { // Simplified, real data processing needed for stacked bar
-                labels: patientMonthlyRows.map(r => r.month), // e.g., ['2024-01', '2024-02']
+            patientOverview: {
+                labels: patientMonthlyRows.map(r => {
+                    const [year, monthNum] = r.month.split('-');
+                    return new Date(year, monthNum - 1, 1).toLocaleString('es-ES', { month: 'short' });
+                }), 
                 datasets: [
-                    { label: 'Pacientes Registrados (Mes)', data: patientMonthlyRows.map(r => r.count), backgroundColor: '#3399ff' },
-                    // Add other datasets (hospitalized, ambulatory) if you have that data
+                    { label: 'Pacientes Registrados', data: patientMonthlyRows.map(r => r.count), backgroundColor: '#3399ff', barPercentage: 0.6 },
                 ],
             },
-            topClinics: { // Based on doctor specialties
+            topClinics: { 
                 labels: topSpecialtiesRows.map(s => s.especialidad),
                 data: topSpecialtiesRows.map(s => s.count),
                 total: topSpecialtiesRows.reduce((sum, s) => sum + s.count, 0),
-                colors: ['#3399ff', '#85c2ff', '#ff99cc'] // Keep mock colors or generate
+                colors: ['#3399ff', '#85c2ff', '#ff99cc', '#f8c32d', '#4bc0c0'] // Added more colors
             },
             doctorsSchedule: {
-                available: { count: totalDoctors, list: formattedAvailableDoctors }, // Simplified
-                unavailable: { count: 0, list: [] }, // Needs more logic
-                leave: { count: 0, list: [] } // Needs more logic
+                available: { count: formattedAvailableDoctors.length, list: formattedAvailableDoctors }, 
+                unavailable: { count: 0, list: [] }, 
+                leave: { count: 0, list: [] } 
             },
             appointments: formattedRecentAppointments.map(apt => ({
                 id: apt.id,
                 name: `${apt.paciente_nombre} ${apt.paciente_apellido}`,
-                avatar_base64: apt.paciente_foto_base64,
-                specialty: apt.doctor_especialidad, // The doctor for the appointment
+                paciente_foto_base64: apt.paciente_foto_base64,
+                doctor_specialty: apt.doctor_especialidad,
+                doctor_name: `${apt.doctor_nombre} ${apt.doctor_apellidos}`,
                 time: new Date(apt.cita_fecha).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit'}),
-                date: new Date(apt.cita_fecha).toLocaleDateString('es-ES')
+                date: new Date(apt.cita_fecha).toLocaleDateString('es-ES', {day: '2-digit', month: 'numeric', year: 'numeric'})
             })),
-            // CalendarActivities would require fetching appointments for the month
-            calendarActivities: {} // Placeholder - very complex to implement fully here
+            calendarActivities: calendarActivities
         });
 
     } catch (error) {

@@ -1,21 +1,57 @@
-// src/views/Dashboard/Dashboard.js
 import React, { useEffect, useState } from 'react';
-import axios from 'axios'; // Make sure axios is imported
-import { API_BASE_URL } from '../../config/apiConfig'; // Import your API base URL
-// ... other C CoreUI imports remain the same ...
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import {
-  // ... your existing icons ...
-  cilMedicalCross // Example for Pacientes Registrados
+  CSpinner,
+  CRow,
+  CCol,
+  CCard,
+  CCardBody,
+  CCardHeader,
+  CAvatar,
+  CBadge,
+  CButton,
+  // CDropdown, CDropdownToggle, CDropdownMenu, CDropdownItem, // Not currently used, can be added back if needed
+  CNav,
+  CNavItem,
+  CNavLink,
+  CTabContent,
+  CTabPane,
+  CListGroup,
+  CListGroupItem,
+  CProgress,
+} from '@coreui/react';
+import { CChartBar, CChartDoughnut, CChartLine } from '@coreui/react-chartjs';
+import CIcon from '@coreui/icons-react';
+import { getStyle } from '@coreui/utils';
+import {
+  cilPeople,
+  cilCalendarCheck,
+  cilBed,
+  cilOptions,
+  cilCalendar,
+  cilPlus,
+  cilChevronLeft,
+  cilChevronRight,
+  cilBriefcase,
+  cilStar,
+  cilHospital,
+  // cilPen, // Replaced by cilCalendarCheck for appointments
+  // cilDoor, // Replaced by cilBed for rooms
+  cilChartPie as cilVisitor, // Replaced by cilPeople for patients
+  cilMedicalCross
 } from '@coreui/icons';
-
+import { API_BASE_URL } from '../../config/apiConfig';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeDoctorTab, setActiveDoctorTab] = useState(1);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [currentDayActivities, setCurrentDayActivities] = useState([]);
+  const [selectedCalendarDay, setSelectedCalendarDay] = useState(new Date().getDate());
 
 
   useEffect(() => {
@@ -23,17 +59,19 @@ const Dashboard = () => {
       setLoading(true);
       setError(null);
       try {
-        // Fetch data from your new backend endpoint
         const response = await axios.get(`${API_BASE_URL}/dashboard/stats`);
         setStats(response.data);
         console.log("Dashboard data from API:", response.data);
 
-        // Initial calendar activities for today (if API provides it for current month)
-        const todayKey = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(currentMonth.getDate()).padStart(2, '0')}`;
-        if (response.data.calendarActivities && response.data.calendarActivities[todayKey]) {
-            setCurrentDayActivities(response.data.calendarActivities[todayKey]);
+        // Initialize activities for the current day of the current month
+        const today = new Date();
+        const initialDateKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        if (response.data && response.data.calendarActivities && response.data.calendarActivities[initialDateKey]) {
+            setCurrentDayActivities(response.data.calendarActivities[initialDateKey]);
+        } else {
+            setCurrentDayActivities([]);
         }
-
+        setSelectedCalendarDay(today.getDate()); // Set selected day to today initially
 
       } catch (error) {
         console.error('Error cargando datos del dashboard:', error);
@@ -46,13 +84,13 @@ const Dashboard = () => {
   }, []); // Fetch only on mount
 
   const handleDayClick = (day) => {
+    setSelectedCalendarDay(day); // Highlight the clicked day
     const dateKey = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    if (stats?.calendarActivities && stats.calendarActivities[dateKey]) {
+    if (stats && stats.calendarActivities && stats.calendarActivities[dateKey]) {
         setCurrentDayActivities(stats.calendarActivities[dateKey]);
     } else {
         setCurrentDayActivities([]);
     }
-    // Optionally, you can also set the 'current selected day' in state if you want to highlight it differently
   };
 
   const renderCalendarDays = () => {
@@ -60,10 +98,9 @@ const Dashboard = () => {
     const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
     const lastDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
     const daysInMonth = lastDayOfMonth.getDate();
-    const startingDay = firstDayOfMonth.getDay(); // 0 for Sunday, 1 for Monday etc.
+    const startingDay = firstDayOfMonth.getDay(); // 0 = Sunday
 
     let days = [];
-    // Adjust for week starting on Sunday (if getDay() is 0-indexed for Sunday)
     for (let i = 0; i < startingDay; i++) {
       days.push(<CCol key={`empty-${i}`} className="p-1 text-center" style={{minHeight:'40px'}}></CCol>);
     }
@@ -71,17 +108,21 @@ const Dashboard = () => {
     for (let day = 1; day <= daysInMonth; day++) {
         const dateKey = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const isToday = today.getDate() === day && today.getMonth() === currentMonth.getMonth() && today.getFullYear() === currentMonth.getFullYear();
-        const hasActivity = stats?.calendarActivities && stats.calendarActivities[dateKey] && stats.calendarActivities[dateKey].length > 0;
+        const isSelectedDay = selectedCalendarDay === day;
+        const hasActivity = stats && stats.calendarActivities && stats.calendarActivities[dateKey] && stats.calendarActivities[dateKey].length > 0;
 
       days.push(
         <CCol key={day} className="p-1 text-center">
             <CButton
-                color={isToday ? "primary" : (hasActivity ? "light" : "transparent")}
-                className={`w-100 p-1 ${isToday ? 'text-white' : (hasActivity ? 'fw-bold' : '')}`}
-                variant={isToday || hasActivity ? undefined : 'ghost'}
+                color={isSelectedDay ? "primary" : (hasActivity ? "light" : "transparent")}
+                className={`w-100 p-1 ${isSelectedDay ? 'text-white' : (hasActivity ? 'fw-bold' : '')} ${isToday && !isSelectedDay ? 'border border-primary' : ''}`}
+                variant={isSelectedDay || hasActivity ? undefined : 'ghost'}
                 size="sm"
-                style={{border: hasActivity && !isToday ? '1px solid #0d6efd' : undefined, minHeight:'40px'}}
-                onClick={() => handleDayClick(day)} // Add click handler
+                style={{
+                    border: hasActivity && !isSelectedDay ? `1px solid ${getStyle('--cui-primary-border-subtle')}` : undefined, 
+                    minHeight:'40px'
+                }}
+                onClick={() => handleDayClick(day)}
             >
              {day}
           </CButton>
@@ -94,125 +135,138 @@ const Dashboard = () => {
   const changeMonth = (offset) => {
     setCurrentMonth(prev => {
         const newMonthDate = new Date(prev.getFullYear(), prev.getMonth() + offset, 1);
-        // TODO: Optionally, re-fetch calendarActivities for the new month if your API supports it
-        // For now, it will use the initially fetched activities or clear them
-        setCurrentDayActivities([]); // Clear activities when month changes
+        // When month changes, try to select the 1st or current day if it's the current month
+        const today = new Date();
+        if (newMonthDate.getFullYear() === today.getFullYear() && newMonthDate.getMonth() === today.getMonth()) {
+            handleDayClick(today.getDate());
+        } else {
+            handleDayClick(1); // Select the first day of the new month
+        }
         return newMonthDate;
     });
   };
-
-  // ... (loading, error, !stats checks remain the same)
-
-
   
+  const handleAñadirItemClick = () => {
+    navigate('/citas');
+  };
 
+  if (loading) {
+    return (
+      <div className="d-flex justify-content-center align-items-center" style={{ height: '80vh' }}>
+        <CSpinner color="primary" />
+        <span className="ms-3 text-body-secondary">Cargando datos del dashboard...</span>
+      </div>
+    );
+  }
 
-  const SmallLineChart = ({ data, borderColor }) => (
+  if (error) {
+    return (
+      <div className="d-flex justify-content-center align-items-center" style={{ height: '80vh' }}>
+        <div className="text-center text-danger">
+          <p>Error al cargar los datos:</p>
+          <p>{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!stats) {
+    return (
+      <div className="d-flex justify-content-center align-items-center" style={{ height: '80vh' }}>
+        <p className="text-body-secondary">No hay datos disponibles para mostrar.</p>
+      </div>
+    );
+  }
+
+  const SmallLineChart = ({data, borderColor}) => (
     <CChartLine
-      data={{
-        labels: data.map((_, index) => `Day ${index + 1}`),
-        datasets: [
-          {
-            label: 'Data',
-            data: data,
-            borderColor: borderColor,
-            fill: false,
-          },
-        ],
-      }}
-      options={{
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { grid: { display: false } },
-          y: { grid: { color: getStyle('--cui-border-color-translucent') } },
-        },
-      }}
+        style={{ height: '30px', marginTop: '10px' }}
+        data={{
+            labels: Array((data || []).length).fill(''),
+            datasets: [{
+                backgroundColor: 'transparent',
+                borderColor: borderColor || getStyle('--cui-gray-300'),
+                borderWidth: 2,
+                data: data || [],
+                pointRadius: 0,
+                tension: 0.4
+            }]
+        }}
+        options={{
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { x: { display: false }, y: { display: false } }
+        }}
     />
   );
+
   const cardStyle = { borderRadius:'1rem', height: '100%' };
   const widgetIconSize = "lg";
 
-  // Determine room availability percentages
   const totalManagedRooms = (stats.roomAvailability?.available || 0) + (stats.roomAvailability?.occupied || 0);
-  // For General/Private, you'll need total counts of each type from your `habitaciones_disponibles` table
-  // These are placeholders, replace with actual counts if available from API
-  const totalGeneralRooms = stats.roomAvailability?.general_total || (stats.roomAvailability?.available + stats.roomAvailability?.occupied) / 2 || 1; // Avoid division by zero
-  const totalPrivateRooms = stats.roomAvailability?.private_total || (stats.roomAvailability?.available + stats.roomAvailability?.occupied) / 2 || 1;
+  const totalGeneralRoomsAPI = stats.roomAvailability?.general_total || 0;
+  const totalPrivateRoomsAPI = stats.roomAvailability?.private_total || 0;
   
-  // Assuming 'occupied' rooms are distributed between general and private based on some logic
-  // This is a simplification. A real system would track occupancy per room type.
-  const occupiedGeneral = Math.min(stats.roomAvailability?.general_occupied || Math.floor(stats.roomAvailability?.occupied / 2), totalGeneralRooms);
-  const occupiedPrivate = Math.min(stats.roomAvailability?.private_occupied || Math.ceil(stats.roomAvailability?.occupied / 2), totalPrivateRooms);
+  const occupiedGeneralAPI = stats.roomAvailability?.general_occupied || 0;
+  const occupiedPrivateAPI = stats.roomAvailability?.private_occupied || 0;
 
-  const availableGeneralRooms = totalGeneralRooms - occupiedGeneral;
-  const availablePrivateRooms = totalPrivateRooms - occupiedPrivate;
+  const availableGeneralRooms = Math.max(0, totalGeneralRoomsAPI - occupiedGeneralAPI);
+  const availablePrivateRooms = Math.max(0, totalPrivateRoomsAPI - occupiedPrivateAPI);
 
 
   return (
     <>
       <CRow className="g-3 mb-4">
-        {/* Total Doctors Widget */}
         <CCol sm={6} lg={3}>
           <CCard style={{ ...cardStyle, backgroundColor: '#4f46e5', color: 'white' }}>
             <CCardBody className="p-3 d-flex flex-column justify-content-between">
               <div>
                 <div className="d-flex justify-content-between align-items-start mb-2">
                   <CIcon icon={cilHospital} size={widgetIconSize} />
-                  {/* <CIcon icon={cilOptions} /> */} {/* Removed options icon for cleaner look */}
                 </div>
                 <div style={{fontSize:'0.85rem', opacity:0.9}}>Total Doctores</div>
-                <div className="fs-4 fw-bold mt-1">{stats.totalDoctors?.value || 0}+ 
-                  {/* <CBadge color="light" textColor="success" shape="rounded-pill" className="ms-1 align-middle" style={{fontSize:'0.65rem'}}>+{stats.totalDoctors.change || 0}%</CBadge> */}
-                </div>
+                <div className="fs-4 fw-bold mt-1">{(stats.totalDoctors?.value || 0)}+</div>
               </div>
               <div>
-                <CChartBar /* ... data from stats.totalDoctors.chartData (still mock or needs API update) ... */ />
-                <div style={{fontSize:'0.75rem', marginTop:'0.5rem', opacity:0.8}}>
-                    {/* Incremento de {stats.totalDoctors.increase || 0} pacientes int. últimos 7 días */}
-                    Actualmente registrados.
-                </div>
+                <CChartBar
+                  style={{ height: '50px', marginTop: '0.5rem' }}
+                  data={{
+                    labels: ['L', 'M', 'M', 'J', 'V', 'S', 'D'],
+                    datasets: [ { backgroundColor: 'rgba(255,255,255,0.3)', borderColor: 'transparent', borderRadius: 3, data: stats.totalDoctors?.chartData || [], barPercentage: 0.5, categoryPercentage: 0.7 }],
+                  }}
+                  options={{ maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } } }}
+                />
+                <div style={{fontSize:'0.75rem', marginTop:'0.5rem', opacity:0.8}}>Actualmente registrados.</div>
               </div>
             </CCardBody>
           </CCard>
         </CCol>
 
-        {/* Book Appointment / Total Appointments Today Widget */}
         <CCol sm={6} lg={3}>
           <CCard style={cardStyle}>
             <CCardBody className="p-3 d-flex flex-column justify-content-between">
               <div>
                 <div className="d-flex justify-content-between align-items-start mb-2">
-                  <CIcon icon={cilCalendarCheck} size={widgetIconSize} className="text-primary"/> {/* Changed icon */}
-                  {/* <CIcon icon={cilOptions} /> */}
+                  <CIcon icon={cilCalendarCheck} size={widgetIconSize} className="text-primary"/>
                 </div>
                 <div style={{fontSize:'0.85rem'}}>Citas Programadas (Hoy)</div>
-                <div className="fs-4 fw-bold mt-1">{(stats.bookAppointment?.value || 0).toLocaleString()} 
-                  {/* <CBadge color="success-light" textColor="success" shape="rounded-pill" className="ms-1 align-middle" style={{fontSize:'0.65rem'}}>+{stats.bookAppointment.change || 0}%</CBadge> */}
-                </div>
-                <div style={{fontSize:'0.75rem', color:'grey', marginTop:'0.1rem'}}>
-                    {/* Datos últimos 7 días: {(stats.bookAppointment?.visitors || 0).toLocaleString()} visitas */}
-                    Total para la fecha actual.
-                </div>
+                <div className="fs-4 fw-bold mt-1">{(stats.bookAppointment?.value || 0).toLocaleString()}</div>
+                <div style={{fontSize:'0.75rem', color:'grey', marginTop:'0.1rem'}}>Total para la fecha actual.</div>
               </div>
               <div>
                 <SmallLineChart data={stats.bookAppointment?.chartData || []} borderColor={getStyle('--cui-primary')} />
-                <div className="text-end" style={{fontSize:'0.75rem', color:'grey', marginTop:'0.2rem'}}>
-                    {(stats.bookAppointment?.daily || 0).toLocaleString()} hoy
-                </div>
+                <div className="text-end" style={{fontSize:'0.75rem', color:'grey', marginTop:'0.2rem'}}>{(stats.bookAppointment?.daily || 0).toLocaleString()} hoy</div>
               </div>
             </CCardBody>
           </CCard>
         </CCol>
 
-        {/* Room Availability Widget */}
-        <CCol sm={6} lg={3}>
+         <CCol sm={6} lg={3}>
             <CCard style={cardStyle}>
                 <CCardBody className="p-3 d-flex flex-column justify-content-between">
                     <div>
                         <div className="d-flex justify-content-between align-items-start mb-2">
-                            <CIcon icon={cilBed} size={widgetIconSize} className="text-warning"/> {/* Changed icon */}
-                            {/* <CIcon icon={cilOptions} /> */}
+                            <CIcon icon={cilBed} size={widgetIconSize} className="text-warning"/>
                         </div>
                         <div style={{fontSize:'0.85rem'}}>Disponibilidad Habitaciones</div>
                         <div className="fs-4 fw-bold mt-1">
@@ -223,61 +277,48 @@ const Dashboard = () => {
                     <div className="mt-2">
                         <div className="d-flex justify-content-between align-items-center" style={{fontSize:'0.8rem'}}>
                             <span>General Disp.</span>
-                            <span className="fw-semibold">{availableGeneralRooms} / {totalGeneralRooms}</span>
+                            <span className="fw-semibold">{availableGeneralRooms} / {totalGeneralRoomsAPI || 0}</span>
                         </div>
-                        <CProgress thin value={(availableGeneralRooms / (totalGeneralRooms || 1)) * 100} color="secondary" className="mt-1 mb-2"/>
-                        
+                        <CProgress thin value={(availableGeneralRooms / (totalGeneralRoomsAPI || 1)) * 100} color="secondary" className="mt-1 mb-2"/>
                         <div className="d-flex justify-content-between align-items-center" style={{fontSize:'0.8rem'}}>
                             <span>Privada Disp.</span>
-                            <span className="fw-semibold">{availablePrivateRooms} / {totalPrivateRooms}</span>
+                            <span className="fw-semibold">{availablePrivateRooms} / {totalPrivateRoomsAPI || 0}</span>
                         </div>
-                        <CProgress thin value={(availablePrivateRooms / (totalPrivateRooms || 1)) * 100} color="warning" className="mt-1"/>
+                        <CProgress thin value={(availablePrivateRooms / (totalPrivateRoomsAPI || 1)) * 100} color="warning" className="mt-1"/>
                     </div>
                 </CCardBody>
             </CCard>
         </CCol>
-        
-        {/* Overall Visitor / Total Patients Widget */}
+
         <CCol sm={6} lg={3}>
           <CCard style={cardStyle}>
             <CCardBody className="p-3 d-flex flex-column justify-content-between">
                 <div>
                     <div className="d-flex justify-content-between align-items-start mb-2">
-                    <CIcon icon={cilPeople} size={widgetIconSize} className="text-info"/> {/* Changed icon */}
-                    {/* <CIcon icon={cilOptions} /> */}
+                    <CIcon icon={cilPeople} size={widgetIconSize} className="text-info"/>
                     </div>
                     <div style={{fontSize:'0.85rem'}}>Total Pacientes Registrados</div>
-                    <div className="fs-4 fw-bold mt-1">{(stats.overallVisitor?.value || 0).toLocaleString()}
-                      {/* <CBadge color="success-light" textColor="success" shape="rounded-pill" className="ms-1 align-middle" style={{fontSize:'0.65rem'}}>+{stats.overallVisitor.change || 0}%</CBadge> */}
-                    </div>
-                    <div style={{fontSize:'0.75rem', color:'grey', marginTop:'0.1rem'}}>
-                        {/* {stats.overallVisitor?.topClinicsText || "Pacientes activos en el sistema."} */}
-                        Pacientes activos en el sistema.
-                    </div>
+                    <div className="fs-4 fw-bold mt-1">{(stats.overallVisitor?.value || 0).toLocaleString()}</div>
+                    <div style={{fontSize:'0.75rem', color:'grey', marginTop:'0.1rem'}}>Pacientes activos en el sistema.</div>
                 </div>
                 <div>
                     <SmallLineChart data={stats.overallVisitor?.chartData || []} borderColor={getStyle('--cui-info')} />
-                    <div className="text-end" style={{fontSize:'0.75rem', color:'grey', marginTop:'0.2rem'}}>
-                        {/* {(stats.overallVisitor?.daily || 0).toLocaleString()} hoy */}
-                        Promedio diario: {(stats.overallVisitor?.daily || 0).toLocaleString()}
-                    </div>
+                    <div className="text-end" style={{fontSize:'0.75rem', color:'grey', marginTop:'0.2rem'}}>Promedio diario: {(stats.overallVisitor?.daily || 0).toLocaleString()}</div>
                 </div>
             </CCardBody>
           </CCard>
         </CCol>
       </CRow>
 
-      {/* Patient Overview Chart */}
       <CRow className="g-3 mb-4">
         <CCol lg={8}>
           <CCard style={cardStyle}>
             <CCardHeader className="d-flex justify-content-between align-items-center">
-              <h6 className="mb-0 fw-semibold"><CIcon icon={cilMedicalCross} className="me-2"/>Resumen de Pacientes (Últimos 6 Meses)</h6>
-              {/* Dropdown for time range can be added back if API supports it */}
+              <h6 className="mb-0 fw-semibold"><CIcon icon={cilMedicalCross} className="me-2"/>Resumen de Pacientes (Registros Mensuales)</h6>
             </CCardHeader>
             <CCardBody>
                 <div className="d-flex justify-content-start small mb-3">
-                    {stats.patientOverview?.datasets.map(ds => (
+                    {(stats.patientOverview?.datasets || []).map(ds => (
                         <div key={ds.label} className="me-3 d-flex align-items-center">
                             <span style={{display:'inline-block', width:'10px', height:'10px', backgroundColor:ds.backgroundColor, borderRadius:'50%', marginRight:'5px'}}></span>
                             {ds.label}
@@ -290,17 +331,17 @@ const Dashboard = () => {
                         labels: stats.patientOverview?.labels || [],
                         datasets: stats.patientOverview?.datasets || [],
                     }}
-                    options={{ /* ... options, ensure scales.y.ticks.callback uses value/1 for actual numbers if not thousands ... */ 
+                    options={{
                         maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                enabled: true, mode: 'index', intersect: false,
+                            }
+                        },
                         scales: {
                             x: { grid: { display: false }, stacked: true, ticks:{font:{size:10}} },
-                            y: { grid: { color: getStyle('--cui-border-color-translucent') }, stacked: true, 
-                                ticks: { 
-                                    callback: (value) => Number.isInteger(value) ? value : '', // Show only integer ticks
-                                    font:{size:10} 
-                                } 
-                            }
+                            y: { grid: { color: getStyle('--cui-border-color-translucent') }, stacked: true, ticks: { callback: (value) => Number.isInteger(value) ? value : '', font:{size:10} } }
                         },
                     }}
                 />
@@ -308,7 +349,6 @@ const Dashboard = () => {
           </CCard>
         </CCol>
 
-        {/* Calendar Card */}
         <CCol lg={4}>
           <CCard style={cardStyle}>
             <CCardHeader className="d-flex justify-content-between align-items-center">
@@ -324,7 +364,7 @@ const Dashboard = () => {
                 {renderCalendarDays()}
               </CRow>
               <div className="mt-2 p-2" style={{backgroundColor:'#2c3e50', color:'white', borderRadius:'0.5rem'}}>
-                <h6 className="small mb-1">Actividades del Día Seleccionado</h6>
+                <h6 className="small mb-1">Actividades del Día ({selectedCalendarDay} {currentMonth.toLocaleString('es-ES', { month: 'short' })})</h6>
                 {currentDayActivities.length > 0 ? currentDayActivities.map((activity, index) => (
                     <div key={index} className="d-flex justify-content-between align-items-center small py-1" style={{fontSize:'0.75rem'}}>
                         <span>
@@ -338,8 +378,15 @@ const Dashboard = () => {
                         <span>{activity.time}</span>
                     </div>
                 )) : <div className="small text-center py-2 opacity-75">Sin actividades para el día seleccionado.</div>}
-                 <CButton color="light" variant="outline" size="sm" className="w-100 mt-2 text-white border-white" style={{fontSize:'0.8rem'}}>
-                    <CIcon icon={cilPlus} className="me-1"/> Añadir Item
+                 <CButton 
+                    color="light" 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-100 mt-2 text-white border-white" 
+                    style={{fontSize:'0.8rem'}}
+                    onClick={handleAñadirItemClick}
+                >
+                    <CIcon icon={cilPlus} className="me-1"/> Añadir Cita
                 </CButton>
               </div>
             </CCardBody>
@@ -347,26 +394,23 @@ const Dashboard = () => {
         </CCol>
       </CRow>
 
-      {/* Top Clinics, Doctors Schedule, Appointments */}
       <CRow className="g-3 mb-4">
         <CCol lg={4}>
           <CCard style={cardStyle}>
             <CCardHeader className="d-flex justify-content-between align-items-center">
                 <h6 className="mb-0 fw-semibold"><CIcon icon={cilStar} className="me-2 text-danger"/>Top Especialidades (Doctores)</h6>
-                {/* <CIcon icon={cilOptions} className="text-muted"/> */}
             </CCardHeader>
             <CCardBody className="d-flex flex-column justify-content-center align-items-center pt-2 pb-3">
               <div style={{width:'180px', height:'180px', position:'relative', margin:'0.5rem 0'}}>
                 <CChartDoughnut
                     data={{
                         labels: stats.topClinics?.labels || [],
-                        datasets: [{ 
-                            data: stats.topClinics?.data || [], 
-                            backgroundColor: stats.topClinics?.colors || ['#CCC'], 
-                            borderColor:'white', borderWidth:3, hoverBorderWidth:3 
-                        }],
+                        datasets: [{ data: stats.topClinics?.data || [], backgroundColor: stats.topClinics?.colors || ['#CCC', '#DDD', '#EEE'], borderColor:'white', borderWidth:3, hoverBorderWidth:3 }],
                     }}
-                    options={{ /* ... */ }}
+                    options={{
+                        maintainAspectRatio: false, cutout: '75%',
+                        plugins: { legend: { display: false }, tooltip:{enabled:true} }
+                    }}
                 />
                 <div className="position-absolute top-50 start-50 translate-middle text-center">
                     <div className="text-muted" style={{fontSize:'0.7rem'}}>Doctores Tot.</div>
@@ -376,8 +420,8 @@ const Dashboard = () => {
               <div className="mt-2 w-100 px-2">
                 {(stats.topClinics?.labels || []).map((label, index) => (
                     <div key={label} className="d-flex justify-content-between align-items-center small my-1 py-1">
-                        <span><CBadge style={{backgroundColor: stats.topClinics.colors[index]}} shape="circle" className="p-1 me-2"/>{label}</span>
-                        <span className="fw-semibold">{stats.topClinics.data[index]}</span>
+                        <span><CBadge style={{backgroundColor: (stats.topClinics?.colors || [])[index] || '#CCC'}} shape="circle" className="p-1 me-2"/>{label}</span>
+                        <span className="fw-semibold">{(stats.topClinics?.data || [])[index] || 0}</span>
                     </div>
                 ))}
               </div>
@@ -385,58 +429,68 @@ const Dashboard = () => {
           </CCard>
         </CCol>
 
-        {/* Doctors Schedule */}
         <CCol lg={4}>
           <CCard style={cardStyle}>
             <CCardHeader className="p-2">
                 <CNav variant="pills" role="tablist" fill className="small">
                     <CNavItem role="presentation">
-                        <CNavLink active={activeDoctorTab === 1} onClick={() => setActiveDoctorTab(1)} href="#" role="tab">
-                            Disponibles <CBadge color="light" textColor="dark" className="ms-1">{stats.doctorsSchedule?.available?.count || 0}</CBadge>
-                        </CNavLink>
+                        <CNavLink active={activeDoctorTab === 1} onClick={() => setActiveDoctorTab(1)} href="#" role="tab">Disponibles <CBadge color="light" textColor="dark" className="ms-1">{stats.doctorsSchedule?.available?.count || 0}</CBadge></CNavLink>
                     </CNavItem>
-                    {/* Add other tabs if API provides data for them */}
+                    <CNavItem role="presentation">
+                        <CNavLink active={activeDoctorTab === 2} onClick={() => setActiveDoctorTab(2)} href="#" role="tab">No Disp. <CBadge color="light" textColor="dark" className="ms-1">{stats.doctorsSchedule?.unavailable?.count || 0}</CBadge></CNavLink>
+                    </CNavItem>
+                    <CNavItem role="presentation">
+                        <CNavLink active={activeDoctorTab === 3} onClick={() => setActiveDoctorTab(3)} href="#" role="tab">Licencia <CBadge color="light" textColor="dark" className="ms-1">{stats.doctorsSchedule?.leave?.count || 0}</CBadge></CNavLink>
+                    </CNavItem>
                 </CNav>
             </CCardHeader>
             <CCardBody className="p-0" style={{maxHeight: '300px', overflowY: 'auto'}}>
                 <CTabContent>
-                    <CTabPane role="tabpanel" visible={activeDoctorTab === 1}>
-                        <CListGroup flush>
-                            {(stats.doctorsSchedule?.available?.list || []).map((doc, index) => (
-                                <CListGroupItem key={index} className="d-flex justify-content-between align-items-center px-3 py-2">
-                                    <div className="d-flex align-items-center">
-                                        <CAvatar 
-                                            src={doc.avatar_base64 ? `data:image/jpeg;base64,${doc.avatar_base64}` : '/avatars/placeholder.png'} 
-                                            size="md" 
-                                            className="me-2"
-                                        />
-                                        <div>
-                                            <div className="fw-semibold small">{doc.name}</div>
-                                            <div className="extra-small text-muted">{doc.specialty}</div>
+                    {[
+                        { id: 1, data: stats.doctorsSchedule?.available, statusLabel: "Disponible", statusColor: "success" },
+                        { id: 2, data: stats.doctorsSchedule?.unavailable, statusLabel: "No Disponible", statusColor: "danger" },
+                        { id: 3, data: stats.doctorsSchedule?.leave, statusLabel: "Licencia", statusColor: "warning" },
+                    ].map(tab => (
+                        <CTabPane role="tabpanel" key={tab.id} visible={activeDoctorTab === tab.id}>
+                            <CListGroup flush>
+                                {(tab.data?.list || []).map((doc, index) => (
+                                    <CListGroupItem key={index} className="d-flex justify-content-between align-items-center px-3 py-2">
+                                        <div className="d-flex align-items-center">
+                                            <CAvatar 
+                                                src={doc.avatar_base64 ? `data:image/jpeg;base64,${doc.avatar_base64}` : '/avatars/placeholder.png'} 
+                                                size="md" 
+                                                className="me-2"
+                                                onError={(e) => { e.target.onerror = null; e.target.src = '/avatars/placeholder.png'; }}
+                                            />
+                                            <div>
+                                                <div className="fw-semibold small">{doc.name}</div>
+                                                <div className="extra-small text-muted">{doc.specialty}</div>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <CBadge color="success-light" textColor="success" shape="rounded-pill" className="small">
-                                        Disponible
-                                    </CBadge>
-                                </CListGroupItem>
-                            ))}
-                            {(stats.doctorsSchedule?.available?.list?.length === 0) &&
-                             <CListGroupItem className="text-center text-muted small p-3">No hay doctores disponibles.</CListGroupItem>
-                            }
-                        </CListGroup>
-                    </CTabPane>
-                    {/* Add other CTabPanes if needed */}
+                                        <CBadge 
+                                            color={`${tab.statusColor}-light`}
+                                            textColor={tab.statusColor}
+                                            shape="rounded-pill" className="small"
+                                        >
+                                            {tab.statusLabel}
+                                        </CBadge>
+                                    </CListGroupItem>
+                                ))}
+                                {(!tab.data?.list || tab.data.list.length === 0) &&
+                                 <CListGroupItem className="text-center text-muted small p-3">No hay doctores en esta categoría.</CListGroupItem>
+                                }
+                            </CListGroup>
+                        </CTabPane>
+                    ))}
                 </CTabContent>
             </CCardBody>
           </CCard>
         </CCol>
 
-        {/* Appointments Today */}
         <CCol lg={4}>
           <CCard style={cardStyle}>
             <CCardHeader className="d-flex justify-content-between align-items-center">
                 <h6 className="mb-0 fw-semibold"><CIcon icon={cilCalendar} className="me-2 text-success"/>Citas Recientes/Próximas</h6>
-                {/* <CIcon icon={cilOptions} className="text-muted"/> */}
             </CCardHeader>
             <CCardBody className="p-0" style={{maxHeight: '300px', overflowY: 'auto'}}>
                 <CListGroup flush>
@@ -447,10 +501,11 @@ const Dashboard = () => {
                                     src={apt.paciente_foto_base64 ? `data:image/jpeg;base64,${apt.paciente_foto_base64}` : '/avatars/placeholder.png'} 
                                     size="md" 
                                     className="me-2"
+                                    onError={(e) => { e.target.onerror = null; e.target.src = '/avatars/placeholder.png'; }}
                                 />
                                 <div>
                                     <div className="fw-semibold small">{apt.name}</div>
-                                    <div className="extra-small text-muted">Dr/a. {apt.doctor_especialidad}</div>
+                                    <div className="extra-small text-muted">Dr/a. {apt.doctor_specialty}</div>
                                 </div>
                             </div>
                             <div className="text-end">
