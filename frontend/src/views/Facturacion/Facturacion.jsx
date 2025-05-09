@@ -63,7 +63,7 @@ export default function FacturacionServiciosCoreUI() {
             setLoadingPacientes(true);
             setError('');
             try {
-                const response = await axios.get(`${API_BASE_URL}/api/pacientes`);
+                const response = await axios.get(`${API_BASE_URL}/pacientes`);
                 const pacientesFormateados = response.data.map(paciente => ({
                     id: paciente.id,
                     nombreCompleto: `${paciente.nombre || ''} ${paciente.apellido || ''}`.trim(),
