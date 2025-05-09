@@ -1,0 +1,349 @@
+@use "@coreui/coreui/scss/coreui" as * with (
+  $enable-deprecation-messages: false,
+);
+@use "@coreui/chartjs/scss/coreui-chartjs";
+@use "vendors/simplebar";
+
+$pastel-blue-bg: #f0f4ff;
+$primary-color-sass-base: #321fdb;
+$secondary-color-sass-base: #6c757d;
+$textDarkBlue: #2c3e50; // Definición añadida aquí (ejemplo: un azul pizarra)
+
+$light-gray-bg: #f8f9fa;
+$input-border-color: #ced4da;
+$input-focus-border-color-sass: lighten($primary-color-sass-base, 25%);
+$input-focus-box-shadow-color-sass: rgba($primary-color-sass-base, 0.25);
+$card-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.075);
+$border-radius-base: 0.375rem;
+$table-cell-border-color: #dee2e6;
+$table-row-hover-bg: #e9ecef;
+$table-row-hover-border-color: var(--cui-primary, $primary-color-sass-base);
+
+body {
+  background-color: var(--cui-tertiary-bg);
+}
+
+.wrapper {
+  width: 100%;
+  padding-inline: var(--cui-sidebar-occupy-start, 0) var(--cui-sidebar-occupy-end, 0);
+  will-change: auto;
+  @include transition(padding .15s);
+}
+
+.body.flex-grow-1 {
+  background-color: $pastel-blue-bg;
+}
+
+.header > .container-fluid,
+.sidebar-header {
+  min-height: calc(4rem + 1px);
+}
+
+.sidebar-brand-full {
+  margin-left: 3px;
+}
+
+.sidebar-header {
+  .nav-underline-border {
+    --cui-nav-underline-border-link-padding-x: 1rem;
+    --cui-nav-underline-border-gap: 0;
+  }
+  .nav-link {
+    display: flex;
+    align-items: center;
+    min-height: calc(4rem + 1px);
+  }
+}
+
+.sidebar-toggler {
+  margin-inline-start: auto;
+}
+
+.sidebar-narrow,
+.sidebar-narrow-unfoldable:not(:hover) {
+  .sidebar-toggler {
+    margin-inline-end: auto;
+  }
+}
+
+.header > .container-fluid + .container-fluid {
+  min-height: 3rem;
+}
+
+.footer {
+  min-height: calc(3rem + 1px);
+}
+
+.modern-form {
+  .form-label {
+    font-weight: 500;
+    color: #495057;
+    margin-bottom: 0.4rem;
+    font-size: 0.875rem;
+  }
+
+  .form-control,
+  .form-select,
+  .p-inputtext,
+  .p-dropdown .p-dropdown-label,
+  .p-inputnumber-input,
+  .p-calendar .p-inputtext {
+    border-radius: $border-radius-base;
+    border: 1px solid $input-border-color;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+    background-color: #fff;
+
+    &:focus {
+      border-color: var(--cui-primary-active, #{$input-focus-border-color-sass});
+      box-shadow: 0 0 0 0.2rem var(--cui-primary-fade, #{$input-focus-box-shadow-color-sass});
+    }
+    &.p-invalid.p-component {
+        border-color: var(--cui-danger, #e55353) !important;
+    }
+  }
+
+  .p-dropdown {
+    border: 1px solid $input-border-color;
+    border-radius: $border-radius-base;
+    &:not(.p-disabled):hover {
+        border-color: darken($input-border-color, 10%);
+    }
+    &.p-focus {
+        border-color: var(--cui-primary-active, #{$input-focus-border-color-sass});
+        box-shadow: 0 0 0 0.2rem var(--cui-primary-fade, #{$input-focus-box-shadow-color-sass});
+    }
+  }
+   .p-inputnumber {
+    border-radius: $border-radius-base;
+    .p-inputtext {
+        border: none;
+    }
+  }
+
+  .p-button, .btn {
+    border-radius: $border-radius-base;
+  }
+
+  .btn-primary, .p-button-primary {
+    background-color: var(--cui-primary, $primary-color-sass-base);
+    border-color: var(--cui-primary, $primary-color-sass-base);
+    color: #fff;
+    &:hover {
+      background-color: var(--cui-primary-dark, #{darken($primary-color-sass-base, 10%)});
+      border-color: var(--cui-primary-dark, #{darken($primary-color-sass-base, 10%)});
+    }
+  }
+}
+
+.vista-container {
+  .card {
+    border: 1px solid #e9ecef;
+    box-shadow: $card-shadow;
+    border-radius: $border-radius-base * 1.75;
+    margin-bottom: 2rem;
+
+    .card-header {
+      background-color: var(--cui-primary, $primary-color-sass-base);
+      color: #fff;
+      border-bottom: none;
+      border-top-left-radius: $border-radius-base * 1.75;
+      border-top-right-radius: $border-radius-base * 1.75;
+      padding: 0.85rem 1.35rem;
+
+      h4, h5 {
+        font-weight: 500;
+        margin-bottom: 0;
+      }
+    }
+    .card-body{
+        padding: 1.75rem;
+    }
+  }
+}
+
+.modern-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+
+  th, td {
+    padding: 0.9rem 1rem;
+    vertical-align: middle;
+    text-align: left;
+    border-bottom: 1px solid $table-cell-border-color;
+    border-right: 1px solid $table-cell-border-color;
+    position: relative;
+    overflow: hidden;
+    transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+
+
+    &:first-child {
+      border-left: 1px solid $table-cell-border-color;
+    }
+  }
+
+  thead th {
+    font-weight: 600;
+    background-color: lighten($pastel-blue-bg, 2%);
+    color: darken($textDarkBlue, 10%);
+    font-size: 0.9rem;
+    border-top: 1px solid $table-cell-border-color;
+
+    &:first-child {
+        border-top-left-radius: $border-radius-base * 0.75;
+    }
+    &:last-child {
+        border-top-right-radius: $border-radius-base * 0.75;
+    }
+  }
+
+  tbody tr {
+    &:last-child td {
+      &:first-child {
+        border-bottom-left-radius: $border-radius-base * 0.75;
+      }
+      &:last-child {
+        border-bottom-right-radius: $border-radius-base * 0.75;
+      }
+    }
+
+    td::before,
+    td::after {
+      content: '';
+      position: absolute;
+      background: linear-gradient(90deg, var(--cui-info, #{adjust-hue($primary-color-sass-base, -30deg)}), var(--cui-primary, $primary-color-sass-base), var(--cui-success, #{adjust-hue($primary-color-sass-base, 120deg)}));
+      transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+      z-index: 0;
+    }
+
+    td::before {
+      top: 0;
+      left: 50%;
+      width: 100%;
+      height: 2px;
+      transform: translateX(-50%) scaleX(0);
+      transform-origin: center;
+    }
+    td::after {
+      left: 0;
+      top: 50%;
+      width: 2px;
+      height: 100%;
+      transform: translateY(-50%) scaleY(0);
+      transform-origin: center;
+    }
+
+    &:hover {
+      background-color: lighten($pastel-blue-bg, 5%);
+      td {
+        border-color: transparent;
+      }
+      td::before {
+        transform: translateX(-50%) scaleX(1);
+      }
+      td::after {
+        transform: translateY(-50%) scaleY(1);
+      }
+    }
+  }
+
+  .text-center {
+    text-align: center;
+  }
+
+  .btn {
+    margin: 0.1rem;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+    }
+  }
+}
+
+
+@include color-mode(dark) {
+  body {
+    background-color: var(--cui-dark-bg-subtle, #1a1a1a);
+  }
+
+  .body.flex-grow-1 {
+    background-color: var(--cui-body-bg, #262626);
+  }
+
+  .footer {
+    --cui-footer-bg: var(--cui-body-bg);
+  }
+
+  .modern-form {
+    .form-label {
+      color: var(--cui-body-color, #adb5bd);
+    }
+    .form-control,
+    .form-select,
+    .p-inputtext,
+    .p-dropdown .p-dropdown-label,
+    .p-inputnumber-input,
+    .p-calendar .p-inputtext {
+      background-color: var(--cui-tertiary-bg, #2f2f2f);
+      border-color: var(--cui-border-color, #495057);
+      color: var(--cui-body-color, #dee2e6);
+
+      &:focus {
+        background-color: var(--cui-tertiary-bg, #2f2f2f);
+        border-color: var(--cui-primary-active-dark, #{lighten($primary-color-sass-base, 10%)});
+        box-shadow: 0 0 0 0.2rem var(--cui-primary-fade-dark, #{rgba(lighten($primary-color-sass-base, 10%), 0.25)});
+      }
+      &::placeholder {
+        color: var(--cui-secondary-color, #6c757d);
+      }
+    }
+    .p-dropdown {
+        border-color: var(--cui-border-color, #495057);
+         &:not(.p-disabled):hover {
+            border-color: var(--cui-border-color-translucent, #6c757d);
+        }
+    }
+  }
+
+  .vista-container .card {
+    border-color: var(--cui-border-color-translucent, #3d3d3d);
+    box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.25);
+    .card-header {
+      background-color: var(--cui-primary-dark, #{darken($primary-color-sass-base, 5%)});
+      color: #f8f9fa;
+    }
+  }
+
+  .modern-table {
+    $dark-body-bg-sass-base: #262626;
+    $table-cell-border-color-dark-sass: lighten($dark-body-bg-sass-base, 10%);
+    $table-row-hover-bg-dark-sass: lighten($dark-body-bg-sass-base, 5%);
+    $table-row-hover-border-color-dark-sass: lighten($primary-color-sass-base, 15%);
+
+
+    th, td {
+      border-color: var(--cui-border-color-translucent, #{$table-cell-border-color-dark-sass});
+    }
+    th {
+      background-color: var(--cui-tertiary-bg, #2a2b2d);
+      color: var(--cui-heading-color, #dee2e6); // Usar variable CoreUI para el color del texto del encabezado
+    }
+    tbody tr:hover {
+      background-color: var(--cui-secondary-bg, #{$table-row-hover-bg-dark-sass});
+      td {
+        border-color: transparent;
+      }
+      td::before {
+         background: linear-gradient(90deg, var(--cui-info-dark, #{adjust-hue($primary-color-sass-base, -15deg)}), var(--cui-primary-dark, $primary-color-sass-base), var(--cui-success-dark, #{adjust-hue($primary-color-sass-base, 100deg)}));
+      }
+      td::after {
+         background: linear-gradient(90deg, var(--cui-info-dark, #{adjust-hue($primary-color-sass-base, -15deg)}), var(--cui-primary-dark, $primary-color-sass-base), var(--cui-success-dark, #{adjust-hue($primary-color-sass-base, 100deg)}));
+      }
+    }
+  }
+}
