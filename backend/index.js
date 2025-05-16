@@ -13,7 +13,7 @@ const dashboardRoutes = require('./routes/dashboardRoutes');
 const doctorRoutes = require('./routes/doctorRoutes'); // Asumiendo que ya lo tenías así
 const facturacionRoutes = require('./routes/facturacionRoutes'); // Asumiendo que ya lo tenías así
 const userRoutes = require('./routes/userRoutes'); // <--- NUEVA RUTA AÑADIDA
-
+const atencionRoutes = require('./routes/atenciones')
 const app = express();
 
 // --- Configuración de CORS ---
@@ -48,7 +48,7 @@ app.use("/api/habitaciones", habitacionesRoutes);
 app.use("/api/inventario", inventarioRoutes);
 app.use('/api/doctores', doctorRoutes);       // Mantenido como lo tenías
 app.use('/api/facturacion', facturacionRoutes); // Mantenido como lo tenías
-
+app.use('/api/atenciones', atencionRoutes);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
