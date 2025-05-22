@@ -90,7 +90,7 @@ const PrediccionReingreso = () => {
     };
 
     try {
-      const response = await axios.post(`http://127.0.0.1:5000/api/prediction/predict`, dataParaAPI);
+      const response = await axios.post(`https://prediccion-machine-learning-hosp-react.onrender.com/api/prediction/predict`, dataParaAPI);
       setPredictionResult(response.data);
       mostrarNotificacion('Predicción Exitosa', 'Se ha obtenido el resultado de la predicción.', 'success');
     } catch (err) {
