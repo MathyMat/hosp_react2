@@ -8,8 +8,8 @@ CONTROLLER_DIR = os.path.dirname(os.path.abspath(__file__))
 BACKEND_DIR = os.path.dirname(CONTROLLER_DIR)
 
 # Nombres de archivo .joblib
-MODEL_FILENAME = 'modelo_reingreso.joblib'  # Cambiado a .joblib
-COLUMNS_FILENAME = 'model_columns.joblib' # Cambiado a .joblib
+MODEL_FILENAME = 'modelo_reingreso.joblib'  
+COLUMNS_FILENAME = 'model_columns.joblib'
 
 MODEL_PATH = os.path.join(BACKEND_DIR, 'ml-service', 'models', MODEL_FILENAME)
 COLUMNS_PATH = os.path.join(BACKEND_DIR, 'ml-service', 'models', COLUMNS_FILENAME)

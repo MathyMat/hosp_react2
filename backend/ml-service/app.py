@@ -1,4 +1,3 @@
-# hosp_react2-main/backend/ml-service/app.py
 import sys
 import os
 

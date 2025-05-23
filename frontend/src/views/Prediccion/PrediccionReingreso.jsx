@@ -13,8 +13,6 @@ import {
   cilBarChart, cilListNumbered, cilMedicalCross
 } from '@coreui/icons';
 
-import { API_BASE_URL } from '../../config/apiConfig'; // Ajusta la ruta si es necesario
-
 const PrediccionReingreso = () => {
   const initialFormData = {
     edad: '',
