@@ -12,7 +12,6 @@ router.post('/', pacientesController.crearPaciente);
 // --- NUEVA RUTA PARA ACTUALIZAR PACIENTE ---
 router.put('/:id', pacientesController.actualizarPaciente);
 
-// Eliminar paciente
-router.delete('/:id', pacientesController.eliminarPaciente);
+
 
 module.exports = router;
