@@ -8,6 +8,8 @@ const Estadisticas = React.lazy(() => import('./views/Estadisticas/Estadisticas'
 
 const Pacientes = React.lazy(() => import('./views/Pacientes/Pacientes.jsx'));
 const Citas = React.lazy(() => import('./views/Citas/Citas.jsx'));
+const HistorialClinicoPaciente = React.lazy(() => import('./views/HistorialClinicoPaciente/HistorialClinicoPaciente.jsx'))
+
 
 const Inventario = React.lazy(() => import('./views/Inventario/Inventario.jsx'));
 const Habitaciones = React.lazy(() => import('./views/Habitaciones/Habitaciones.jsx'));
@@ -31,6 +33,7 @@ const routes = [
   { path: '/calendario', name: 'Calendario', element: Calendario },
   { path: '/estadisticas', name: 'Estadísticas', element: Estadisticas },
   { path: '/pacientes', name: 'Pacientes', element: Pacientes },
+  { path: '/historial/paciente/:pacienteId', name: 'Historial Clínico del Paciente', element: HistorialClinicoPaciente }, 
   { path: '/citas', name: 'Citas', element: Citas },
   { path: '/inventario', name: 'Inventario', element: Inventario },
   { path: '/habitaciones', name: 'Habitaciones', element: Habitaciones },
@@ -39,11 +42,10 @@ const routes = [
   { path: '/asistente-virtual', name: 'Asistente Virtual', element: AsistenteVirtual },
   { path: '/perfil', name: 'Mi Perfil', element: Perfil },
 
-  { path: '/prediccion', name: 'Predicción de Reingreso', element: PrediccionReingreso }, // Nueva ruta
-
+  { path: '/prediccion', name: 'Predicción de Reingreso', element: PrediccionReingreso },
   // ============================================
 
-  { path: '/', exact: true, name: 'Home' }, // Probablemente redirigido a /dashboard por DefaultLayout
+  { path: '/', exact: true, name: 'Home' }, 
 ];
 
 export default routes;

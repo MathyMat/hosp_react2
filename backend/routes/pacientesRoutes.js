@@ -20,6 +20,9 @@ const upload = multer({
 });
 
 router.get('/', pacientesController.obtenerPacientes);
+// NUEVA RUTA para obtener un paciente por ID
+router.get('/:id', pacientesController.obtenerPacientePorId); // Asegúrate que este nombre de función coincida en el controlador
+
 // Usar multer para el campo 'fotoPaciente'
 router.post('/', upload.single('fotoPaciente'), pacientesController.crearPaciente);
 router.put('/:id', upload.single('fotoPaciente'), pacientesController.actualizarPaciente);

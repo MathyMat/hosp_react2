@@ -1,48 +1,49 @@
 // src/views/Pacientes/Pacientes.js
 import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom'; // NUEVO: Importar useNavigate
 import {
   CButton, CCard, CCardBody, CCardHeader, CCol, CForm, CFormInput,
   CFormLabel, CFormSelect, CRow, CAlert, CSpinner, CModal, CModalHeader,
   CModalTitle, CModalBody, CModalFooter, CAvatar, CListGroup, CListGroupItem, CImage,
-  CInputGroup, CInputGroupText 
+  CInputGroup, CInputGroupText
 } from '@coreui/react';
 import CIcon from '@coreui/icons-react';
-import { 
-    cilUserPlus, cilTrash, cilPeople, cilWarning, cilCheckCircle, cilXCircle, 
-    cilInfo, cilPencil, cilSave, cilBirthdayCake, cilContact, cilNotes, 
-    cilPhone, cilLocationPin, cilThumbUp, // cilCamera was not used
-    cilSearch 
+import {
+    cilUserPlus, cilTrash, cilPeople, cilWarning, cilCheckCircle, cilXCircle,
+    cilInfo, cilPencil, cilSave, cilBirthdayCake, cilContact, cilNotes,
+    cilPhone, cilLocationPin, cilThumbUp,
+    cilSearch,
+    cilClipboard // NUEVO: Importar ícono para historial
 } from '@coreui/icons';
 
-import placeholderAvatar from '../../assets/images/avatar-placeholder.png'; 
+import placeholderAvatar from '../../assets/images/avatar-placeholder.png';
 
 import { API_BASE_URL } from '../../config/apiConfig';
 
 const RegistroPacientes = () => {
+  const navigate = useNavigate(); // NUEVO: Hook para navegación
+
   const [pacientes, setPacientes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [formLoading, setFormLoading] = useState(false); // For modal form submission
+  const [formLoading, setFormLoading] = useState(false);
   const [error, setError] = useState('');
   const [terminoBusqueda, setTerminoBusqueda] = useState('');
 
-  // State for Add/Edit Modal
   const [showFormModal, setShowFormModal] = useState(false);
-  const [pacienteEnFormulario, setPacienteEnFormulario] = useState(null); // Null for Add, object for Edit
+  const [pacienteEnFormulario, setPacienteEnFormulario] = useState(null);
   const [formData, setFormData] = useState({
     nombre: '', apellido: '', dni: '', fecha_nacimiento: '', genero: '',
     telefono: '', direccion: '', notas: '', fotoPacienteFile: null
   });
   const [previewUrl, setPreviewUrl] = useState(placeholderAvatar);
-  const fileInputRef = useRef(null); // For the modal's file input
+  const fileInputRef = useRef(null);
 
-  // State for Notification Modal
   const [showNotificationModal, setShowNotificationModal] = useState(false);
-  const [notificationModalConfig, setNotificationModalConfig] = useState({ 
-    title: '', message: '', color: 'info', icon: cilInfo 
+  const [notificationModalConfig, setNotificationModalConfig] = useState({
+    title: '', message: '', color: 'info', icon: cilInfo
   });
 
-  // State for Delete Confirmation Modal
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [idParaEliminar, setIdParaEliminar] = useState(null);
   const [loadingDelete, setLoadingDelete] = useState(false);
@@ -54,7 +55,7 @@ const RegistroPacientes = () => {
     { value: 'Otro', label: 'Otro' },
   ];
 
-  const resetModalForm = () => { 
+  const resetModalForm = () => {
     setFormData({
       nombre: '', apellido: '', dni: '', fecha_nacimiento: '', genero: '',
       telefono: '', direccion: '', notas: '', fotoPacienteFile: null
@@ -98,41 +99,40 @@ const RegistroPacientes = () => {
   const handleFileChangeModal = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      if (file.size > 5 * 1024 * 1024) {
         mostrarNotificacion("Archivo Grande", "La imagen no debe exceder los 5MB.", "warning");
-        if(fileInputRef.current) fileInputRef.current.value = null; // Clear the file input
-        // Revert to previous state for fotoPacienteFile and previewUrl
+        if(fileInputRef.current) fileInputRef.current.value = null;
         setFormData(prev => ({ ...prev, fotoPacienteFile: null }));
         setPreviewUrl(pacienteEnFormulario?.fotoBase64 ? `data:image/jpeg;base64,${pacienteEnFormulario.fotoBase64}` : placeholderAvatar);
         return;
       }
       setFormData(prev => ({ ...prev, fotoPacienteFile: file }));
       setPreviewUrl(URL.createObjectURL(file));
-    } else { // No file selected or selection cleared
+    } else {
       setFormData(prev => ({ ...prev, fotoPacienteFile: null }));
       setPreviewUrl(pacienteEnFormulario?.fotoBase64 ? `data:image/jpeg;base64,${pacienteEnFormulario.fotoBase64}` : placeholderAvatar);
     }
   };
 
   const abrirModalFormulario = (paciente = null) => {
-    setError(''); 
-    if (paciente) { // Edit mode
+    setError('');
+    if (paciente) {
       setPacienteEnFormulario(paciente);
       setFormData({
-        nombre: paciente.nombre || '', 
+        nombre: paciente.nombre || '',
         apellido: paciente.apellido || '',
-        dni: paciente.dni || '', 
-        fecha_nacimiento: paciente.fecha_nacimiento ? paciente.fecha_nacimiento.split('T')[0] : '', // Format for <input type="date">
-        genero: paciente.genero || '', 
+        dni: paciente.dni || '',
+        fecha_nacimiento: paciente.fecha_nacimiento ? paciente.fecha_nacimiento.split('T')[0] : '',
+        genero: paciente.genero || '',
         telefono: paciente.telefono || '',
-        direccion: paciente.direccion || '', 
+        direccion: paciente.direccion || '',
         notas: paciente.notas || '',
-        fotoPacienteFile: null // Will hold the new file if selected
+        fotoPacienteFile: null
       });
       setPreviewUrl(paciente.fotoBase64 ? `data:image/jpeg;base64,${paciente.fotoBase64}` : placeholderAvatar);
-    } else { // Add mode
+    } else {
       setPacienteEnFormulario(null);
-      resetModalForm(); // Resets formData, previewUrl, and fileInputRef
+      resetModalForm();
     }
     setShowFormModal(true);
   };
@@ -149,26 +149,24 @@ const RegistroPacientes = () => {
       mostrarNotificacion('Campos Incompletos', 'Nombre, Apellido, DNI, Fecha de Nacimiento y Género son requeridos.', 'warning');
       return;
     }
-    if (!/^\d{8,15}$/.test(formData.dni.trim())) { // Allow 8 to 15 digits for DNI
+    if (!/^\d{8,15}$/.test(formData.dni.trim())) {
         mostrarNotificacion('DNI Inválido', 'El DNI debe contener entre 8 y 15 dígitos numéricos.', 'warning');
         return;
     }
 
     setFormLoading(true);
     const payloadFormData = new FormData();
-    // Append all fields from formData
-    // fotoPacienteFile is handled specifically to append as 'fotoPaciente' if it's a file
     Object.keys(formData).forEach(key => {
       if (key === 'fotoPacienteFile' && formData[key] instanceof File) {
-        payloadFormData.append('fotoPaciente', formData[key]); // Backend expects 'fotoPaciente'
+        payloadFormData.append('fotoPaciente', formData[key]);
       } else if (key !== 'fotoPacienteFile' && formData[key] !== null && formData[key] !== undefined) {
         payloadFormData.append(key, formData[key]);
       }
     });
-    
+
     const isEditMode = !!pacienteEnFormulario;
     const endpoint = isEditMode
-        ? `${API_BASE_URL}/pacientes/${pacienteEnFormulario.id}` 
+        ? `${API_BASE_URL}/pacientes/${pacienteEnFormulario.id}`
         : `${API_BASE_URL}/pacientes`;
     const method = isEditMode ? 'put' : 'post';
 
@@ -177,10 +175,7 @@ const RegistroPacientes = () => {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       mostrarNotificacion('Éxito', response.data?.mensaje || `Paciente ${isEditMode ? 'actualizado' : 'registrado'} exitosamente.`, 'success');
-      
       handleCloseFormModal();
-      
-      // Update local state or reload
       if (response.data.paciente && typeof response.data.paciente.id !== 'undefined') {
         const pacienteRecibido = {
             ...response.data.paciente,
@@ -193,9 +188,8 @@ const RegistroPacientes = () => {
         }
       } else {
         console.warn("Respuesta del backend no contenía un paciente válido, recargando lista completa.");
-        cargarPacientes(); // Fallback
+        cargarPacientes();
       }
-
     } catch (err) {
       console.error(`Error al ${isEditMode ? 'actualizar' : 'registrar'} paciente:`, err);
       mostrarNotificacion('Error', err.response?.data?.error || err.response?.data?.mensaje || `No se pudo ${isEditMode ? 'actualizar' : 'registrar'} el paciente.`, 'error');
@@ -220,47 +214,26 @@ const RegistroPacientes = () => {
     try {
       const response = await axios.delete(`${API_BASE_URL}/pacientes/${idParaEliminar}`);
       mostrarNotificacion('Paciente Eliminado', response.data?.mensaje || 'Paciente eliminado exitosamente.', 'success');
-      setPacientes(prev => prev.filter(p => p && p.id !== idParaEliminar)); // Already sorted, just filter
-    } catch (err) { 
+      setPacientes(prev => prev.filter(p => p && p.id !== idParaEliminar));
+    } catch (err) {
       console.error("Error al eliminar paciente:", err);
       mostrarNotificacion('Error al Eliminar', err.response?.data?.error || err.response?.data?.mensaje || 'No se pudo eliminar el paciente.', 'error');
-    } 
+    }
     finally { setLoadingDelete(false); setShowDeleteModal(false); setIdParaEliminar(null); }
   };
-  
-  const formatDisplayDate = (dateString) => {
-    if (!dateString || dateString === '0000-00-00') return 'N/A'; // Handle specific invalid date string
-    try {
-      // Dates from <input type="date"> are YYYY-MM-DD.
-      // Append time and 'Z' to ensure it's parsed as UTC, then display in local 'es-ES'.
-      const date = new Date(dateString + 'T00:00:00Z'); 
-      if (isNaN(date.getTime())) {
-        // Fallback for potentially different date formats if necessary, though type="date" is standard
-        const parts = dateString.split('/'); // Example: DD/MM/YYYY
-        if (parts.length === 3) {
-            const formattedDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00Z`);
-            if (!isNaN(formattedDate.getTime())) {
-                return formattedDate.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
-            }
-        }
-        return 'Fecha Inv.';
-      }
-      return date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
-    } catch (e) { 
-      console.warn("Error formatting date:", dateString, e);
-      return 'Error Fecha'; 
-    }
-  };
+
+  // formatDisplayDate no es necesario aquí si no se muestra fecha de nacimiento en la lista principal
+  // Si lo necesitas en otro lugar, mantenlo.
 
   const pacientesFiltrados = pacientes.filter(paciente => {
-    if (!paciente) return false; 
+    if (!paciente) return false;
     const busquedaLower = terminoBusqueda.toLowerCase();
     const nombreCompleto = `${paciente.nombre || ''} ${paciente.apellido || ''}`.toLowerCase();
     const dni = String(paciente.dni || '').toLowerCase();
     return nombreCompleto.includes(busquedaLower) || dni.includes(busquedaLower);
   });
 
-  if (loading && !pacientes.length && error) { 
+  if (loading && !pacientes.length && error) {
     return (
         <div className="p-4">
             <CAlert color="danger" className="text-center">
@@ -280,7 +253,7 @@ const RegistroPacientes = () => {
         <CCol xs={12} md={8} lg={9} className="mb-2 mb-md-0">
           <CInputGroup>
             <CInputGroupText><CIcon icon={cilSearch} /></CInputGroupText>
-            <CFormInput 
+            <CFormInput
               type="search" placeholder="Buscar paciente por nombre, apellido o DNI..."
               value={terminoBusqueda} onChange={(e) => setTerminoBusqueda(e.target.value)}
               aria-label="Buscar paciente"
@@ -320,16 +293,16 @@ const RegistroPacientes = () => {
                   <CListGroupItem key={p.id} className="px-0 py-3 patient-list-item">
                     <CRow className="g-0 w-100 align-items-center">
                       <CCol xs="auto" className="text-center" style={{width: '80px', paddingRight: '10px'}}>
-                        <CAvatar 
-                            src={p.fotoBase64 ? `data:image/jpeg;base64,${p.fotoBase64}` : placeholderAvatar} 
-                            size="xl" // Larger avatar
+                        <CAvatar
+                            src={p.fotoBase64 ? `data:image/jpeg;base64,${p.fotoBase64}` : placeholderAvatar}
+                            size="xl"
                             onError={(e) => { e.target.onerror = null; e.target.src = placeholderAvatar; }}
                         />
                       </CCol>
                       <CCol>
                         <div className="fw-bold fs-5 mb-1">{p.nombre} {p.apellido}</div>
                         <div className="small text-body-secondary mb-1">
-                            <CIcon icon={cilContact} className="me-1"/> DNI: {p.dni || 'N/A'} 
+                            <CIcon icon={cilContact} className="me-1"/> DNI: {p.dni || 'N/A'}
                             <span className="mx-2">|</span>
                             <CIcon icon={cilThumbUp} className="me-1"/> Género: {p.genero || 'N/A'}
                         </div>
@@ -344,19 +317,34 @@ const RegistroPacientes = () => {
                             </div>
                         )}
                       </CCol>
-                      <CCol xs="auto" className="d-flex flex-column flex-sm-row align-items-center justify-content-end ps-2 ms-auto"> {/* ms-auto to push buttons to the right */}
+                      {/* // MODIFICADO: Contenedor de botones de acción */}
+                      <CCol xs="auto" className="d-flex flex-column flex-sm-row align-items-center justify-content-end ps-2 ms-auto action-buttons-column">
                         <CButton
                             color="info" variant="outline" size="sm"
                             onClick={() => abrirModalFormulario(p)}
                             className="me-sm-2 mb-1 mb-sm-0 action-button" title="Editar Paciente"
                             disabled={formLoading || loadingDelete || loading}
                         > <CIcon icon={cilPencil} /> </CButton>
-                        <CButton 
-                            color="danger" variant="outline" size="sm" 
-                            onClick={() => solicitarEliminarPaciente(p.id)} 
+
+                        {/* NUEVO: Botón Ver Historial Clínico */}
+                        <CButton
+                            color="success" // Puedes cambiar el color si prefieres
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigate(`/historial/paciente/${p.id}`)} // Asegúrate que esta ruta está configurada
+                            className="me-sm-2 mb-1 mb-sm-0 action-button"
+                            title="Ver Historial Clínico"
+                            disabled={loading} // Deshabilitado mientras carga la lista principal
+                        >
+                            <CIcon icon={cilClipboard} />
+                        </CButton>
+
+                        <CButton
+                            color="danger" variant="outline" size="sm"
+                            onClick={() => solicitarEliminarPaciente(p.id)}
                             disabled={loadingDelete || formLoading || loading}
                             title="Eliminar Paciente"
-                            className="action-button"
+                            className="action-button" // No necesita me-sm-2 si es el último o si se maneja con gap
                         > <CIcon icon={cilTrash} /> </CButton>
                       </CCol>
                     </CRow>
@@ -367,7 +355,7 @@ const RegistroPacientes = () => {
           )}
         </CCardBody>
       </CCard>
-      
+
       {/* MODAL DE NOTIFICACIÓN */}
       <CModal alignment="center" visible={showNotificationModal} onClose={() => setShowNotificationModal(false)}>
         <CModalHeader onClose={() => setShowNotificationModal(false)} className={`bg-${notificationModalConfig.color} text-white`}>
@@ -403,9 +391,9 @@ const RegistroPacientes = () => {
       {/* MODAL DE AGREGAR/EDITAR PACIENTE */}
       {showFormModal && (
         <CModal alignment="center" size="lg" visible={showFormModal} onClose={handleCloseFormModal} backdrop="static">
-          <CModalHeader closeButton> 
+          <CModalHeader closeButton>
             <CModalTitle>
-                <CIcon icon={pacienteEnFormulario ? cilPencil : cilUserPlus} className="me-2" /> 
+                <CIcon icon={pacienteEnFormulario ? cilPencil : cilUserPlus} className="me-2" />
                 {pacienteEnFormulario ? `Editar Paciente: ${formData.nombre || ''} ${formData.apellido || ''}`.trim() : "Registrar Nuevo Paciente"}
             </CModalTitle>
           </CModalHeader>
@@ -423,7 +411,7 @@ const RegistroPacientes = () => {
                 <CCol md={12}><CFormLabel htmlFor="form_direccion">Dirección</CFormLabel><CFormInput id="form_direccion" name="direccion" value={formData.direccion} onChange={handleFormInputChange} /></CCol>
                 <CCol md={12}><CFormLabel htmlFor="form_notas">Notas Adicionales</CFormLabel><CFormInput id="form_notas" component="textarea" name="notas" value={formData.notas} onChange={handleFormInputChange} rows="2" /></CCol>
                 <CCol md={12}><CFormLabel htmlFor="form_fotoPacienteFile">Foto del Paciente (Max 5MB)</CFormLabel><CFormInput type="file" id="form_fotoPacienteFile" name="fotoPacienteFile" accept="image/*" onChange={handleFileChangeModal} ref={fileInputRef} /></CCol>
-                <CCol xs={12} className="text-center mt-3"> {/* Increased margin-top for better spacing */}
+                <CCol xs={12} className="text-center mt-3">
                   {previewUrl && <CImage src={previewUrl} alt="Previsualización Paciente" thumbnail width={150} className="mb-2" onError={(e) => { e.target.onerror = null; e.target.src = placeholderAvatar; }}/>}
                 </CCol>
               </CRow>

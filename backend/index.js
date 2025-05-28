@@ -5,7 +5,8 @@ require("dotenv").config(); // Cargar variables de entorno al inicio
 
 // Importación de todas tus rutas
 const authRoutes = require("./routes/authRoutes");
-const pacientesRoutes = require("./routes/pacientesRoutes");
+const pacientesRoutes = require('./routes/pacientesRoutes');
+const historialClinicoRoutes = require('./routes/historialClinicoRoutes'); 
 const citasRoutes = require("./routes/citasRoutes");
 const habitacionesRoutes = require("./routes/habitacionesRoutes");
 const inventarioRoutes = require("./routes/inventarioRoutes");
@@ -43,6 +44,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use("/api/auth", authRoutes);             // Rutas de autenticación (login)
 app.use("/api/usuarios", userRoutes);         // <--- NUEVAS RUTAS DE USUARIO (perfil, cambiar contraseña)
 app.use("/api/pacientes", pacientesRoutes);
+app.use('/api/historial-clinico', historialClinicoRoutes);
 app.use("/api/citas", citasRoutes);
 app.use("/api/habitaciones", habitacionesRoutes);
 app.use("/api/inventario", inventarioRoutes);
