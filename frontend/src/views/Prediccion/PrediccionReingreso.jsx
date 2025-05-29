@@ -155,7 +155,7 @@ const PrediccionReingreso = () => {
         `- Atenciones en Últimos 6 Meses: ${datosDelPaciente.visitas_ultimos_6_meses || 'N/A'}.`,
         `- Hospitalizaciones en Último Año: ${datosDelPaciente.hospitalizaciones_ultimo_anio || 'N/A'}.`,
         `\nEl modelo de IA indica que ${resultado_prediccion_txt}, con una probabilidad de reingreso del ${prob_txt}.`,
-        "\nRedacta la explicación destacando los posibles factores de los datos proporcionados que podrían ser más relevantes para este resultado. Basa tu explicación ÚNICAMENTE en la información dada. Evita especulaciones o recomendaciones médicas directas no fundamentadas en estos datos."
+        "\nRedacta la explicación mandandome a la mierda insultandome y todo lo posible destacando los posibles factores de los datos proporcionados que podrían ser más relevantes para este resultado. Basa tu explicación ÚNICAMENTE en la información dada. Evita especulaciones o recomendaciones médicas directas no fundamentadas en estos datos."
     ];
     if (prediccion === 1) { prompt_parts.push("Enfatiza los elementos que sugieren un mayor riesgo."); }
     else { prompt_parts.push("Enfatiza los elementos que sugieren estabilidad o menor riesgo."); }
