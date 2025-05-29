@@ -351,28 +351,45 @@ const PrediccionReingreso = () => {
         </CCard>
       )}
 
-      {/* Dashboard de Power BI */}
-      <CCard className="mt-4 mb-4 shadow-sm">
-        <CCardHeader className="bg-dark text-white">
-          <h5 className="mb-0 d-flex align-items-center"> <CIcon icon={cilBarChart} className="me-2" /> Dashboard de Reingreso (Power BI) </h5>
-        </CCardHeader>
-        <CCardBody>
-          <div style={{ position: 'relative', paddingTop: '62.25%', height: 0, overflow: 'hidden' }}>
-            <iframe title="prediccion-ia" width="100%" height="100%" src="https://app.powerbi.com/view?r=eyJrIjoiMjZmNGY5YjEtZDAyMy00M2Q4LTg1MjItY2RhZTU0ODc0NDMxIiwidCI6ImI0YTQwNTQ1LTc3NzktNGIzOC1hZmY3LTFmMTczOGY4MDg0MCIsImMiOjR9" frameBorder="0" allowFullScreen={true} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} ></iframe>
+      
+            {/* AQUI VA EL DASHBOARD DE POWER BI */}
+            <CCard className="mt-4 mb-4 shadow-sm">
+              <CCardHeader className="bg-primary text-white">
+                <h5 className="mb-0 d-flex align-items-center">
+                  <CIcon icon={cilBarChart} className="me-2" /> {/* Puedes cambiar este icono si prefieres otro */}
+                  Dashboard de Reingreso Hospitalario (Power BI)
+                </h5>
+              </CCardHeader>
+              <CCardBody>
+                {/* Contenedor para hacer el iframe responsivo con un aspecto 16:10 (600w / 373.5h) */}
+                <div style={{ position: 'relative', paddingTop: '62.25%', height: 0 }}>
+                  <iframe
+                    title="prediccion-ia"
+                    width="100%" // Ocupa el ancho completo del contenedor
+                    height="100%" // Ocupa el alto completo del contenedor
+                    src="https://app.powerbi.com/view?r=eyJrIjoiMjZmNGY5YjEtZDAyMy00M2Q4LTg1MjItY2RhZTU0ODc0NDMxIiwidCI6ImI0YTQwNTQ1LTc3NzktNGIzOC1hZmY3LTFmMTczOGY4MDg0MCIsImMiOjR9"
+                    frameBorder="0" // En React, es frameBorder
+                    allowFullScreen={true} // En React, es allowFullScreen
+                    style={{ position: 'absolute', top: 0, left: 0 }} // Para posicionar dentro del contenedor responsivo
+                  ></iframe>
+                </div>
+              </CCardBody>
+            </CCard>
+            {/* FIN DEL DASHBOARD DE POWER BI */}
+      
+            {/* MODAL DE NOTIFICACIÓN (reutilizado) */}
+            <CModal alignment="center" visible={showNotificationModal} onClose={() => setShowNotificationModal(false)}>
+              <CModalHeader onClose={() => setShowNotificationModal(false)} className={`bg-${notificationModalConfig.color} text-white`}>
+                <CModalTitle><CIcon icon={notificationModalConfig.icon} className="me-2" />{notificationModalConfig.title}</CModalTitle>
+              </CModalHeader>
+              <CModalBody>{notificationModalConfig.message}</CModalBody>
+              <CModalFooter>
+                <CButton color={notificationModalConfig.color} onClick={() => setShowNotificationModal(false)}>Aceptar</CButton>
+              </CModalFooter>
+            </CModal>
+      
           </div>
-        </CCardBody>
-      </CCard>
-
-      {/* Modal de Notificación */}
-      <CModal alignment="center" visible={showNotificationModal} onClose={() => setShowNotificationModal(false)}>
-        <CModalHeader onClose={() => setShowNotificationModal(false)} className={`bg-${notificationModalConfig.color} text-white`}> 
-          <CModalTitle><CIcon icon={notificationModalConfig.icon} className="me-2" />{notificationModalConfig.title}</CModalTitle> 
-        </CModalHeader>
-        <CModalBody>{notificationModalConfig.message}</CModalBody>
-        <CModalFooter> <CButton color={notificationModalConfig.color} onClick={() => setShowNotificationModal(false)}>Aceptar</CButton> </CModalFooter>
-      </CModal>
-    </div>
-  );
-};
-
-export default PrediccionReingreso;
+        );
+      };
+      
+      export default PrediccionReingreso;
