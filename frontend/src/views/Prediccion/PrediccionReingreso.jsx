@@ -141,7 +141,6 @@ const PrediccionReingreso = () => {
 
     setLoadingGeminiExplanation(true);
     const { prediccion, probabilidad } = prediccionMlInfo;
-    const prob_txt = `${(probabilidad * 100).toFixed(1)}%`;
     const resultado_prediccion_txt = prediccion === 1 ? "**SÍ** hay un riesgo significativo de reingreso" : "**NO** se identifica un riesgo inmediato de reingreso";
 
     const prompt_parts = [
