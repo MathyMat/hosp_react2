@@ -154,7 +154,7 @@ const PrediccionReingreso = () => {
         `- Visitas en Últimos 30 Días: ${datosDelPaciente.visitas_ultimos_30_dias || 'N/A'}.`,
         `- Atenciones en Últimos 6 Meses: ${datosDelPaciente.visitas_ultimos_6_meses || 'N/A'}.`,
         `- Hospitalizaciones en Último Año: ${datosDelPaciente.hospitalizaciones_ultimo_anio || 'N/A'}.`,
-        `\nEl modelo de IA indica que ${resultado_prediccion_txt}, con una probabilidad de reingreso del ${prob_txt}.`,
+        `\nEl modelo de IA indica que ${resultado_prediccion_txt},
         "\nRedacta la explicación destacando los posibles factores de los datos proporcionados que podrían ser más relevantes para este resultado. Basa tu explicación ÚNICAMENTE en la información dada. Evita especulaciones o recomendaciones médicas directas no fundamentadas en estos datos."
     ];
     if (prediccion === 1) { prompt_parts.push("Enfatiza los elementos que sugieren un mayor riesgo."); }
@@ -312,21 +312,7 @@ const PrediccionReingreso = () => {
                 <CCol md={6} className="text-center text-md-start mb-3 mb-md-0">
                     <h4> Predicción: <span className={`fw-bold ${predictionResult.prediccion === 1 ? 'text-danger' : 'text-success'}`}> {predictionResult.prediccion === 1 ? 'SÍ REINGRESA' : 'NO REINGRESA'} </span> </h4>
                 </CCol>
-                <CCol md={6}>
-                    <h5>Probabilidad de Reingreso:</h5>
-                    <CProgress className="mb-0" height={25}>
-                        <CProgressBar 
-                            value={predictionResult.probabilidad >= 0 && predictionResult.probabilidad <= 1 ? predictionResult.probabilidad * 100 : (predictionResult.prediccion === 1 ? 75 : 25)} 
-                            color={predictionResult.prediccion === 1 ? 'danger' : 'success'} 
-                            variant="striped" 
-                            animated 
-                        >
-                            <span className="fw-bold"> 
-                                {predictionResult.probabilidad >= 0 && predictionResult.probabilidad <= 1 ? (predictionResult.probabilidad * 100).toFixed(2) + '%' : "Estimada"} 
-                            </span>
-                        </CProgressBar>
-                    </CProgress>
-                </CCol>
+                
             </CRow>
             
             {/* Mostrar la explicación (de Gemini o el fallback) o el spinner si se está cargando */}
