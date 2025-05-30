@@ -134,118 +134,72 @@ const PrediccionReingreso = () => {
   const handleResetForm = () => { setFormData(initialFormData); setPredictionResult(null); };
 
   const generarExplicacionConGeminiFrontend = async (prediccionMlInfo, datosDelPaciente) => {
-    if (!GEMINI_API_ENDPOINT) {
-      console.warn("API Key de Gemini no configurada o endpoint no disponible.");
-      return "Servicio de análisis detallado (IA) no configurado o no disponible.";
-    }
+  if (!GEMINI_API_ENDPOINT) {
+    console.warn("API Key de Gemini no configurada o endpoint no disponible.");
+    return "Servicio de análisis detallado (IA) no configurado o no disponible.";
+  }
 
-    setLoadingGeminiExplanation(true);
-    const { prediccion, probabilidad } = prediccionMlInfo;
-    const resultado_prediccion_txt = prediccion === 1 ? "**SÍ** hay un riesgo significativo de reingreso" : "**NO** se identifica un riesgo inmediato de reingreso";
+  setLoadingGeminiExplanation(true);
+  const { prediccion, probabilidad } = prediccionMlInfo;
 
-    const prompt_parts = [
-        "Actúa como un asistente médico virtual experto. Tu tarea es explicar de forma concisa, profesional y en un solo párrafo (máximo 4 frases) el resultado de una predicción de riesgo de reingreso hospitalario a otro profesional de la salud.",
-        "La predicción se basa en los siguientes datos del paciente:",
-        `- Edad: ${datosDelPaciente.edad || 'N/A'} años.`,
-        `- Género: ${datosDelPaciente.genero || 'N/A'}.`,
-        `- Condición Principal Reportada: ${datosDelPaciente.enfermedad || 'N/A'}.`,
-        `- Días desde Última Atención Médica: ${datosDelPaciente.tiempo_ultima_atencion_dias || 'N/A'}.`,
-        `- Visitas en Últimos 30 Días: ${datosDelPaciente.visitas_ultimos_30_dias || 'N/A'}.`,
-        `- Atenciones en Últimos 6 Meses: ${datosDelPaciente.visitas_ultimos_6_meses || 'N/A'}.`,
-        `- Hospitalizaciones en Último Año: ${datosDelPaciente.hospitalizaciones_ultimo_anio || 'N/A'}.`,
-        `\nEl modelo de IA indica que ${resultado_prediccion_txt},
-        "\nRedacta la explicación destacando los posibles factores de los datos proporcionados que podrían ser más relevantes para este resultado. Basa tu explicación ÚNICAMENTE en la información dada. Evita especulaciones o recomendaciones médicas directas no fundamentadas en estos datos."
-    ];
-    if (prediccion === 1) { prompt_parts.push("Enfatiza los elementos que sugieren un mayor riesgo."); }
-    else { prompt_parts.push("Enfatiza los elementos que sugieren estabilidad o menor riesgo."); }
-    
-    const prompt_final = prompt_parts.join("\n");
+  const prompt_parts = [
+    "Actúa como un asistente médico virtual experto. Tu tarea es explicar de forma concisa, profesional y en un solo párrafo (máximo 4 frases) el resultado de una predicción de riesgo de reingreso hospitalario a otro profesional de la salud.",
+    "La predicción se basa en los siguientes datos del paciente:",
+    `- Edad: ${datosDelPaciente.edad || 'N/A'} años.`,
+    `- Género: ${datosDelPaciente.genero || 'N/A'}.`,
+    `- Condición Principal Reportada: ${datosDelPaciente.enfermedad || 'N/A'}.`,
+    `- Días desde Última Atención Médica: ${datosDelPaciente.tiempo_ultima_atencion_dias || 'N/A'}.`,
+    `- Visitas en Últimos 30 Días: ${datosDelPaciente.visitas_ultimos_30_dias || 'N/A'}.`,
+    `- Atenciones en Últimos 6 Meses: ${datosDelPaciente.visitas_ultimos_6_meses || 'N/A'}.`,
+    `- Hospitalizaciones en Último Año: ${datosDelPaciente.hospitalizaciones_ultimo_anio || 'N/A'}.`,
+    `\nEl modelo de IA ha generado una predicción basada en estos datos.`,
+    "Redacta la explicación destacando los posibles factores de los datos proporcionados que podrían ser más relevantes para este resultado. Basa tu explicación ÚNICAMENTE en la información dada. Evita especulaciones o recomendaciones médicas directas no fundamentadas en estos datos."
+  ];
 
-    const requestBody = {
-      contents: [{ parts: [{ text: prompt_final }] }],
-      generationConfig: { temperature: 0.3, maxOutputTokens: 200, candidateCount: 1 },
-      safetySettings: [
-        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
-      ],
-    };
+  if (prediccion === 1) {
+    prompt_parts.push("Enfatiza los elementos que sugieren un mayor riesgo.");
+  } else {
+    prompt_parts.push("Enfatiza los elementos que sugieren estabilidad o menor riesgo.");
+  }
 
-    try {
-      const geminiResponse = await axios.post(GEMINI_API_ENDPOINT, requestBody, {
-        headers: { 'Content-Type': 'application/json' }
-      });
-      
-      if (geminiResponse.data.candidates && geminiResponse.data.candidates[0]?.content?.parts?.[0]?.text) {
-        return geminiResponse.data.candidates[0].content.parts[0].text.trim();
-      } else {
-        let reason = "Respuesta inesperada de IA.";
-        if (geminiResponse.data.candidates?.[0]?.finishReason) { reason = `Motivo: ${geminiResponse.data.candidates[0].finishReason}`; }
-        else if (geminiResponse.data.promptFeedback?.blockReason){ reason = `Bloqueado por IA: ${geminiResponse.data.promptFeedback.blockReason}`; }
-        console.warn("Respuesta de Gemini no tuvo el formato esperado.", reason, geminiResponse.data);
-        return `No se pudo generar una explicación detallada con IA (${reason}).`;
-      }
-    } catch (error) {
-      console.error("Error al llamar a la API de Gemini:", error.response?.data || error.message);
-      return "Error al contactar el servicio de IA para la explicación. Por favor, verifique la consola para más detalles.";
-    } finally {
-      setLoadingGeminiExplanation(false);
-    }
+  const prompt_final = prompt_parts.join("\n");
+
+  const requestBody = {
+    contents: [{ parts: [{ text: prompt_final }] }],
+    generationConfig: { temperature: 0.3, maxOutputTokens: 200, candidateCount: 1 },
+    safetySettings: [
+      { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+    ],
   };
 
-  const handleSubmitPrediction = async (e) => {
-    e.preventDefault();
-    if (!formData.id_paciente_seleccionado) {
-      mostrarNotificacion('Paciente no Seleccionado', 'Por favor, seleccione un paciente.', 'warning'); return;
-    }
-    const camposParaEnviar = {
-      edad: parseFloat(formData.edad), genero: formData.genero, enfermedad: formData.enfermedad,
-      tiempo_ultima_atencion_dias: parseFloat(formData.tiempo_ultima_atencion_dias),
-      visitas_ultimos_30_dias: parseFloat(formData.visitas_ultimos_30_dias),
-      visitas_ultimos_6_meses: parseFloat(formData.visitas_ultimos_6_meses),
-      hospitalizaciones_ultimo_anio: parseFloat(formData.hospitalizaciones_ultimo_anio),
-    };
-    for (const key of ['edad', 'tiempo_ultima_atencion_dias', 'visitas_ultimos_30_dias', 'visitas_ultimos_6_meses', 'hospitalizaciones_ultimo_anio']) {
-        if (isNaN(camposParaEnviar[key])) {
-            mostrarNotificacion('Datos Inválidos', `El campo '${key.replace(/_/g, ' ')}' debe ser un número válido.`, 'warning'); return;
-        }
-    }
-    if (!camposParaEnviar.genero) { mostrarNotificacion('Datos Inválidos', 'El género es requerido.', 'warning'); return; }
+  try {
+    const geminiResponse = await axios.post(GEMINI_API_ENDPOINT, requestBody, {
+      headers: { 'Content-Type': 'application/json' }
+    });
 
-    setLoadingMlPrediction(true); 
-    setPredictionResult(null);
-    let explicacionTexto = "Generando análisis..."; // Placeholder inicial
-
-    try {
-      const responseML = await axios.post(ML_PREDICTION_API_URL, camposParaEnviar);
-      const prediccionMlData = responseML.data;
-      setLoadingMlPrediction(false); 
-
-      if (prediccionMlData && typeof prediccionMlData.prediccion !== 'undefined') {
-        // Actualizar el resultado parcial para mostrar predicción y probabilidad mientras se genera explicación
-        setPredictionResult({ ...prediccionMlData, explicacion: explicacionTexto });
-
-        if (GEMINI_API_ENDPOINT) {
-          explicacionTexto = await generarExplicacionConGeminiFrontend(prediccionMlData, formData);
-        } else {
-          explicacionTexto = "Servicio de análisis detallado (IA) no configurado.";
-        }
-        // Actualizar el resultado final con la explicación
-        setPredictionResult(prevResult => ({ ...prevResult, explicacion: explicacionTexto }));
-        mostrarNotificacion('Predicción Realizada', 'Se ha obtenido el resultado y el análisis.', 'success');
-      } else {
-        throw new Error("La respuesta de la API de predicción ML no fue la esperada.");
+    if (geminiResponse.data.candidates && geminiResponse.data.candidates[0]?.content?.parts?.[0]?.text) {
+      return geminiResponse.data.candidates[0].content.parts[0].text.trim();
+    } else {
+      let reason = "Respuesta inesperada de IA.";
+      if (geminiResponse.data.candidates?.[0]?.finishReason) {
+        reason = `Motivo: ${geminiResponse.data.candidates[0].finishReason}`;
+      } else if (geminiResponse.data.promptFeedback?.blockReason) {
+        reason = `Bloqueado por IA: ${geminiResponse.data.promptFeedback.blockReason}`;
       }
-    } catch (err) {
-      console.error("Error en el proceso de predicción y/o explicación:", err);
-      const errorMsg = err.response?.data?.error || err.response?.data?.message || 'Ocurrió un error en el proceso.';
-      mostrarNotificacion('Error en Proceso', errorMsg, 'error');
-      setLoadingMlPrediction(false);
-      setLoadingGeminiExplanation(false); // Asegurarse que ambos se detengan
-      setPredictionResult(prev => prev ? {...prev, explicacion: "Fallo al generar análisis."} : null);
+      console.warn("Respuesta de Gemini no tuvo el formato esperado.", reason, geminiResponse.data);
+      return `No se pudo generar una explicación detallada con IA (${reason}).`;
     }
-  };
+  } catch (error) {
+    console.error("Error al llamar a la API de Gemini:", error.response?.data || error.message);
+    return "Error al contactar el servicio de IA para la explicación. Por favor, verifique la consola para más detalles.";
+  } finally {
+    setLoadingGeminiExplanation(false);
+  }
+};
+
 
   return (
     <div className="prediction-view p-4">
