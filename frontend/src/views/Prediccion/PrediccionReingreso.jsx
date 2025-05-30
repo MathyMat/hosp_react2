@@ -199,7 +199,58 @@ const PrediccionReingreso = () => {
     setLoadingGeminiExplanation(false);
   }
 };
+const handleSubmitPrediction = async (e) => {
+    e.preventDefault();
+    if (!formData.id_paciente_seleccionado) {
+      mostrarNotificacion('Paciente no Seleccionado', 'Por favor, seleccione un paciente.', 'warning'); return;
+    }
+    const camposParaEnviar = {
+      edad: parseFloat(formData.edad), genero: formData.genero, enfermedad: formData.enfermedad,
+      tiempo_ultima_atencion_dias: parseFloat(formData.tiempo_ultima_atencion_dias),
+      visitas_ultimos_30_dias: parseFloat(formData.visitas_ultimos_30_dias),
+      visitas_ultimos_6_meses: parseFloat(formData.visitas_ultimos_6_meses),
+      hospitalizaciones_ultimo_anio: parseFloat(formData.hospitalizaciones_ultimo_anio),
+    };
+    for (const key of ['edad', 'tiempo_ultima_atencion_dias', 'visitas_ultimos_30_dias', 'visitas_ultimos_6_meses', 'hospitalizaciones_ultimo_anio']) {
+        if (isNaN(camposParaEnviar[key])) {
+            mostrarNotificacion('Datos Inválidos', `El campo '${key.replace(/_/g, ' ')}' debe ser un número válido.`, 'warning'); return;
+        }
+    }
+    if (!camposParaEnviar.genero) { mostrarNotificacion('Datos Inválidos', 'El género es requerido.', 'warning'); return; }
 
+    setLoadingMlPrediction(true); 
+    setPredictionResult(null);
+    let explicacionTexto = "Generando análisis..."; // Placeholder inicial
+
+    try {
+      const responseML = await axios.post(ML_PREDICTION_API_URL, camposParaEnviar);
+      const prediccionMlData = responseML.data;
+      setLoadingMlPrediction(false); 
+
+      if (prediccionMlData && typeof prediccionMlData.prediccion !== 'undefined') {
+        // Actualizar el resultado parcial para mostrar predicción y probabilidad mientras se genera explicación
+        setPredictionResult({ ...prediccionMlData, explicacion: explicacionTexto });
+
+        if (GEMINI_API_ENDPOINT) {
+          explicacionTexto = await generarExplicacionConGeminiFrontend(prediccionMlData, formData);
+        } else {
+          explicacionTexto = "Servicio de análisis detallado (IA) no configurado.";
+        }
+        // Actualizar el resultado final con la explicación
+        setPredictionResult(prevResult => ({ ...prevResult, explicacion: explicacionTexto }));
+        mostrarNotificacion('Predicción Realizada', 'Se ha obtenido el resultado y el análisis.', 'success');
+      } else {
+        throw new Error("La respuesta de la API de predicción ML no fue la esperada.");
+      }
+    } catch (err) {
+      console.error("Error en el proceso de predicción y/o explicación:", err);
+      const errorMsg = err.response?.data?.error || err.response?.data?.message || 'Ocurrió un error en el proceso.';
+      mostrarNotificacion('Error en Proceso', errorMsg, 'error');
+      setLoadingMlPrediction(false);
+      setLoadingGeminiExplanation(false); // Asegurarse que ambos se detengan
+      setPredictionResult(prev => prev ? {...prev, explicacion: "Fallo al generar análisis."} : null);
+    }
+  };
 
   return (
     <div className="prediction-view p-4">
