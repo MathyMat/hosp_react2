@@ -291,7 +291,13 @@ const HistorialClinicoPaciente = () => {
                 <CCol md={6}>
                     <CFormLabel htmlFor="modal_hist_edad_display">Edad (al momento del registro)</CFormLabel>
                     {/* Campo de edad solo para mostrar, no editable por el usuario */}
-                    <CFormInput type="text" id="modal_hist_edad_display" value={edadParaModal ? `${edadParaModal} años` : 'Automática'} readOnly disabled />
+                    <CFormInput 
+  type="text" 
+  id="modal_hist_edad_display" 
+  value={edadParaModal ? `${edadParaModal} años` : 'Automática'} 
+  onChange={(e) => setEdadParaModal(e.target.value)} 
+/>
+
                 </CCol>
                 <CCol md={6}><CFormLabel htmlFor="modal_hist_genero_atencion">Género (al momento del registro)</CFormLabel><CFormSelect id="modal_hist_genero_atencion" name="genero" value={formDataModal.genero} onChange={handleFormModalChange} > {opcionesGeneroHistorial.map(op => <option key={op.value} value={op.value} disabled={op.value === ''}>{op.label}</option>)} </CFormSelect></CCol>
                 
